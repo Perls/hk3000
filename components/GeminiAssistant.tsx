@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Sparkles, Send, Loader2 } from 'lucide-react';
 import { parseNaturalLanguageOrder } from '../services/geminiService';
@@ -38,13 +39,17 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onApplySuggest
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
-      <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="w-5 h-5 text-indigo-600" />
-        <h3 className="font-bold text-indigo-900">AI Chef Assistant</h3>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-xl">👨‍🍳</span>
+        <h3 className="font-bold text-indigo-900">AI Chef</h3>
       </div>
       
-      <p className="text-sm text-indigo-700 mb-3 leading-relaxed">
-        Describe what you're craving (e.g., "Post-workout high protein bowl without onions") and I'll build it for you.
+      <p className="text-sm text-indigo-800 font-medium mb-1">
+        Ask AI for help with your order
+      </p>
+
+      <p className="text-xs text-indigo-500 mb-4 leading-relaxed">
+        You can ask the AI for help with any question about your order, or have them even build your order after a few ideas from you.
       </p>
 
       <form onSubmit={handleSubmit} className="relative">
@@ -52,7 +57,7 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onApplySuggest
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="I want something spicy..."
+          placeholder="e.g. Is the chicken spicy?"
           className="w-full pl-4 pr-12 py-3 rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm shadow-sm"
           disabled={isLoading}
         />
