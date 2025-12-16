@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Ingredient, Preset } from '../types';
-import { AIOrderSuggestion } from '../types';
+import { Ingredient, Preset, Restaurant } from '../types';
+import { AIOrderSuggestion, AIRecommendation } from '../types';
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -24,6 +24,21 @@ const ORDER_SCHEMA: Schema = {
     },
   },
   required: ["orderName", "itemIds", "reasoning"],
+};
+
+const RECOMMENDATION_SCHEMA: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    text: {
+      type: Type.STRING,
+      description: "The answer to the user's question, recommending a restaurant if applicable.",
+    },
+    suggestedRestaurantId: {
+      type: Type.STRING,
+      description: "The ID of the restaurant recommended, if any.",
+    }
+  },
+  required: ["text"]
 };
 
 const MENU_GENERATION_SCHEMA: Schema = {
@@ -93,7 +108,9 @@ export const parseNaturalLanguageOrder = async (
   restaurantName: string
 ): Promise<AIOrderSuggestion | null> => {
   try {
-    const menuContext = menu.map(item => `${item.name} (ID: ${item.id}, Cat: ${item.category})`).join(', ');
+    const menuContext = menu.length > 0 
+      ? menu.map(item => `${item.name} (ID: ${item.id}, Cat: ${item.category})`).join(', ')
+      : "Menu data is currently being retrieved or is unavailable. Explain this to the user.";
     
     const systemInstruction = `
       You are an expert ${restaurantName} AI Chef. 
@@ -103,7 +120,7 @@ export const parseNaturalLanguageOrder = async (
       ${menuContext}
       
       Rules:
-      1. ONLY use IDs provided in the menu context.
+      1. ONLY use IDs provided in the menu context. If menu is empty, return empty itemIds and explain in reasoning.
       2. If the user asks a question (e.g. "Is the chicken spicy?"), answer it within the "reasoning" field AND suggest a relevant order (e.g. create a bowl with that chicken).
       3. In the "reasoning" field, be helpful and specific about flavors (especially spice levels), textures, and why you chose these items.
       4. Construct a logical order (e.g., Base + Protein + Toppings).
@@ -128,6 +145,49 @@ export const parseNaturalLanguageOrder = async (
 
   } catch (error) {
     console.error("Gemini API Error:", error);
+    return null;
+  }
+};
+
+export const getRestaurantRecommendation = async (
+  userPrompt: string,
+  restaurants: Restaurant[]
+): Promise<AIRecommendation | null> => {
+  try {
+    const context = restaurants.map(r => 
+      `${r.name} (ID: ${r.id}, Cuisine: ${r.logo}, Dist: ${r.distanceFromRec})`
+    ).join('\n');
+
+    const systemInstruction = `
+      You are the Concierge AI Chef for Hickory Terrace.
+      Help the user choose where to eat based on their request.
+      
+      Available Restaurants:
+      ${context}
+
+      Rules:
+      1. Recommend 1-2 restaurants that best fit the user's craving.
+      2. Be brief and friendly.
+      3. If a clear winner exists, populate 'suggestedRestaurantId' with its ID.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: RECOMMENDATION_SCHEMA,
+        temperature: 0.5,
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(response.text) as AIRecommendation;
+    }
+    return null;
+  } catch (error) {
+    console.error("Gemini Recommendation Error:", error);
     return null;
   }
 };
@@ -297,4 +357,3 @@ export const generateItemModifications = async (
     return [];
   }
 };
-

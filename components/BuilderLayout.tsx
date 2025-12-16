@@ -133,7 +133,6 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
             </div>
             <div className="md:col-span-4 lg:col-span-3 space-y-4">
                 {!showImporter && !isScraping && (
-                    <>
                     <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-4 md:p-5 sticky top-24">
                         <div className="flex justify-between items-center mb-3 md:mb-4">
                             <h2 className="font-bold text-base md:text-lg">Current Order</h2>
@@ -204,13 +203,16 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
                             <Save className="w-4 h-4" /> Save Config
                         </button>
                     </div>
-                    <GeminiAssistant 
-                        onApplySuggestion={handleApplyAISuggestion}
-                        menu={menu}
-                        restaurantName={activeRestaurant.name}
-                    />
-                    </>
                 )}
+                
+                {/* Always show AI Assistant, even when scraping */}
+                <GeminiAssistant 
+                    onApplySuggestion={handleApplyAISuggestion}
+                    menu={menu}
+                    restaurantName={activeRestaurant.name}
+                    variant="embedded"
+                    scope="restaurant"
+                />
             </div>
         </main>
     );

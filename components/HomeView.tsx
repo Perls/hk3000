@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Star, Dices, Sparkles, MapPin, History, Plus, Loader2 } from 'lucide-react';
 import { Restaurant, Order } from '../types';
 import { AddRestaurantModal } from './AddRestaurantModal';
+import { GeminiAssistant } from './GeminiAssistant';
 
 interface HomeViewProps {
     favoritesList: Restaurant[];
@@ -36,7 +37,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [showAddModal, setShowAddModal] = useState(false);
 
   return (
-    <main className="max-w-6xl mx-auto p-3 md:p-8 space-y-8 md:space-y-12 pb-24">
+    <main className="max-w-6xl mx-auto p-3 md:p-8 space-y-8 md:space-y-12 pb-24 relative">
             
         {/* Favorites Section */}
         <section>
@@ -191,7 +192,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </section>
 
         {/* Floating Add Button (Mobile) or Bottom Section (Desktop) */}
-        <div className="fixed bottom-6 right-6 md:relative md:bottom-auto md:right-auto md:flex md:justify-center">
+        <div className="fixed bottom-6 left-6 md:relative md:bottom-auto md:left-auto md:flex md:justify-center z-40">
              <button 
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-2 bg-stone-900 text-white px-5 py-3 rounded-full shadow-xl hover:bg-stone-800 transition-transform hover:scale-105"
@@ -200,6 +201,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
                  <span className="font-bold">Add New Spot</span>
              </button>
         </div>
+        
+        {/* Floating AI Chef */}
+        <GeminiAssistant 
+            variant="floating" 
+            scope="global" 
+            restaurants={allRestaurants}
+            onSelectRestaurant={onSelectRestaurant}
+        />
 
         {showAddModal && (
             <AddRestaurantModal 

@@ -78,4 +78,3 @@ export const RestaurantDistance: React.FC<RestaurantDistanceProps> = ({
     </div>
   );
 };
-

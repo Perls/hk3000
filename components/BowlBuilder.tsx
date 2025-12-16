@@ -415,4 +415,3 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
     </div>
   );
 };
-

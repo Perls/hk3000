@@ -65,3 +65,7 @@ export interface AIOrderSuggestion {
   reasoning: string;
 }
 
+export interface AIRecommendation {
+  text: string;
+  suggestedRestaurantId?: string;
+}
