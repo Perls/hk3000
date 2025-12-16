@@ -383,7 +383,7 @@ const App: React.FC = () => {
       const savedForRest = savedMenus[activeRestaurant.id] || [];
       const hasSystem = RESTAURANTS.some(r => r.id === activeRestaurant.id);
       
-      const versionOptions = [];
+      const versionOptions: {id: string, label: string}[] = [];
       if (hasSystem) {
           versionOptions.push({ id: 'SYSTEM', label: 'System Default' });
       }
