@@ -120,33 +120,49 @@ export const parseNaturalLanguageOrder = async (
 
 export const generateMenuFromContext = async (
   restaurantName: string,
-  context: string
+  context: string,
+  mode: 'standard' | 'deep' = 'standard'
 ): Promise<{ menu: Ingredient[], presets: Preset[] } | null> => {
   try {
-    const systemInstruction = `
+    const baseInstruction = `
       You are a menu digitization expert. 
       Generate a realistic, structured menu for a restaurant named "${restaurantName}".
       
       Context provided by user (URL or text): "${context}"
       
-      If the context is a URL, assume you visited it and extracted the likely menu items based on the restaurant's name and typical cuisine.
-      If the context is text, parse it into ingredients/options.
-      
-      Create 20-40 distinct menu items (Ingredients) categorized logically (e.g., Appetizers, Entrees, Sides, Drinks, or Bases, Proteins, Toppings if it's a bowl place).
-      Create 2-4 Presets (signature meals).
-      
       Ensure IDs are unique and URL-friendly (e.g., "res-burger").
       Estimate calories and prices if not explicit.
+    `;
+
+    const standardModeInstruction = `
+      ${baseInstruction}
+      If the context is a URL, assume you visited it and extracted the likely menu items based on the restaurant's name and typical cuisine directly visible on that page.
+      
+      Create 20-30 distinct menu items categorized logically.
+      Create 2-3 Presets.
+    `;
+
+    const deepModeInstruction = `
+      ${baseInstruction}
+      *** DEEP SCAN MODE ACTIVATED ***
+      The context is a starting URL. 
+      1. Assume you are a web crawler visiting this URL.
+      2. Simulate clicking on navigational links such as "Dinner Menu", "Lunch Menu", "Order Online", "Specialties", or specific food category links (e.g. "Sushi", "Steaks").
+      3. "Traverse" these simulated links to gather a comprehensive list of all offerings.
+      4. Aggregate items from ALL these simulated sub-pages into one massive menu.
+      
+      Create 40-60 distinct menu items to cover the full depth of the restaurant's offerings.
+      Create 4-6 Presets based on signature combinations found during this deep dive.
     `;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Generate menu for ${restaurantName}`,
       config: {
-        systemInstruction: systemInstruction,
+        systemInstruction: mode === 'deep' ? deepModeInstruction : standardModeInstruction,
         responseMimeType: "application/json",
         responseSchema: MENU_GENERATION_SCHEMA,
-        temperature: 0.4,
+        temperature: 0.5,
       }
     });
 

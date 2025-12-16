@@ -112,66 +112,66 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({
     return (
       <div className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-stone-900 px-6 py-4 flex justify-between items-center">
-            <h2 className="text-white font-bold text-lg flex items-center gap-2">
+          <div className="bg-stone-900 px-4 md:px-6 py-3 md:py-4 flex justify-between items-center">
+            <h2 className="text-white font-bold text-base md:text-lg flex items-center gap-2">
               <Save className="w-5 h-5 text-stone-400" />
               Save Configuration
             </h2>
             <button onClick={onCancelSave} className="text-stone-400 hover:text-white transition-colors">
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 md:w-6 md:h-6" />
             </button>
           </div>
           
-          <div className="p-6 space-y-6">
-            <div className="bg-stone-50 rounded-xl p-4 border border-stone-200">
+          <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+            <div className="bg-stone-50 rounded-xl p-3 md:p-4 border border-stone-200">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">{r?.logo}</span>
-                <span className="font-bold text-stone-800">{r?.name}</span>
+                <span className="text-xl md:text-2xl">{r?.logo}</span>
+                <span className="font-bold text-stone-800 text-sm md:text-base">{r?.name}</span>
               </div>
-              <p className="text-sm text-stone-600 leading-relaxed max-h-32 overflow-y-auto">
+              <p className="text-xs md:text-sm text-stone-600 leading-relaxed max-h-32 overflow-y-auto">
                 {getFullSummaryFromData(pendingOrder.items, pendingOrder.customItems)}
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div>
-                <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+                <label className="block text-[10px] md:text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5 md:mb-2">
                   Configuration Name
                 </label>
                 <input 
                   type="text"
                   value={saveName}
                   onChange={(e) => setSaveName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-stone-300 focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all font-medium"
+                  className="w-full px-3 py-2 md:px-4 md:py-3 rounded-lg border border-stone-300 focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all font-medium text-sm md:text-base"
                   placeholder="e.g. My Favorite Bowl"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+                <label className="block text-[10px] md:text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5 md:mb-2">
                   Creator Name
                 </label>
                 <input 
                   type="text"
                   value={saveCreator}
                   onChange={(e) => setSaveCreator(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-stone-300 focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all font-medium"
+                  className="w-full px-3 py-2 md:px-4 md:py-3 rounded-lg border border-stone-300 focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all font-medium text-sm md:text-base"
                   placeholder="Your Name"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 md:gap-3 pt-2">
               <button 
                 onClick={onCancelSave}
-                className="flex-1 py-3 text-stone-600 font-bold hover:bg-stone-100 rounded-xl transition-colors"
+                className="flex-1 py-2.5 md:py-3 text-stone-600 font-bold hover:bg-stone-100 rounded-xl transition-colors text-xs md:text-sm"
               >
                 Cancel
               </button>
               <button 
                 onClick={() => onConfirmSave(saveName, saveCreator)}
                 disabled={!saveName.trim() || !saveCreator.trim()}
-                className="flex-1 py-3 bg-stone-900 text-white font-bold rounded-xl hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                className="flex-1 py-2.5 md:py-3 bg-stone-900 text-white font-bold rounded-xl hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-xs md:text-sm"
               >
                 Confirm Save
               </button>
@@ -184,56 +184,56 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({
 
   // Normal List View
   return (
-    <div className="min-h-screen bg-stone-100 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-stone-100 p-2 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
         
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-2 md:gap-4 mb-4 md:mb-8 mt-2 md:mt-0">
           <button 
             onClick={onBack}
-            className="p-2 bg-white rounded-full text-stone-600 hover:bg-stone-200 hover:text-stone-900 transition-colors shadow-sm"
+            className="p-1.5 md:p-2 bg-white rounded-full text-stone-600 hover:bg-stone-200 hover:text-stone-900 transition-colors shadow-sm"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
           </button>
           <div>
-             <h1 className="text-2xl font-bold text-stone-900 flex items-center gap-2">
-                <History className="w-6 h-6 text-stone-500" />
+             <h1 className="text-lg md:text-2xl font-bold text-stone-900 flex items-center gap-2">
+                <History className="w-5 h-5 md:w-6 md:h-6 text-stone-500" />
                 System Memory
              </h1>
-             <p className="text-stone-500 text-sm">Manage your saved configurations</p>
+             <p className="text-stone-500 text-xs md:text-sm">Manage your saved configurations</p>
           </div>
         </div>
 
         {orders.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center border border-dashed border-stone-300 shadow-sm">
-                <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <History className="w-8 h-8 text-stone-400" />
+            <div className="bg-white rounded-xl p-8 md:p-12 text-center border border-dashed border-stone-300 shadow-sm">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <History className="w-6 h-6 md:w-8 md:h-8 text-stone-400" />
                 </div>
-                <h3 className="text-lg font-bold text-stone-900">Memory Empty</h3>
-                <p className="text-stone-500 mb-6">You haven't saved any order configurations yet.</p>
+                <h3 className="text-base md:text-lg font-bold text-stone-900">Memory Empty</h3>
+                <p className="text-stone-500 mb-6 text-sm">You haven't saved any order configurations yet.</p>
                 <button 
                     onClick={onBack}
-                    className="px-6 py-2 bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-colors"
+                    className="px-4 py-2 md:px-6 md:py-2 bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-colors text-sm"
                 >
                     Return to Hub
                 </button>
             </div>
         ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3 md:gap-4">
             {orders.map((order) => {
                 const r = getRestaurant(order.restaurantId);
                 return (
                     <div
                     key={order.id}
-                    className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow group"
+                    className="bg-white border border-stone-200 rounded-xl p-3 md:p-5 shadow-sm hover:shadow-md transition-shadow group"
                     >
-                    <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-3">
-                            <span className="text-3xl bg-stone-50 p-2 rounded-lg">{r?.logo}</span>
+                    <div className="flex justify-between items-start mb-2 md:mb-3">
+                        <div className="flex items-center gap-2 md:gap-3">
+                            <span className="text-2xl md:text-3xl bg-stone-50 p-1.5 md:p-2 rounded-lg">{r?.logo}</span>
                             <div>
-                                <h3 className="font-bold text-lg text-stone-800 leading-tight group-hover:text-blue-600 transition-colors">{order.name}</h3>
-                                <span className="text-xs text-stone-400 font-mono flex items-center gap-2">
-                                    <span className={`w-2 h-2 rounded-full ${r?.color || 'bg-gray-400'}`}></span>
+                                <h3 className="font-bold text-sm md:text-lg text-stone-800 leading-tight group-hover:text-blue-600 transition-colors">{order.name}</h3>
+                                <span className="text-[10px] md:text-xs text-stone-400 font-mono flex items-center gap-2">
+                                    <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${r?.color || 'bg-gray-400'}`}></span>
                                     {r?.name} • {order.creator} • {new Date(order.timestamp).toLocaleDateString()}
                                 </span>
                             </div>
@@ -241,40 +241,40 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({
                         <div className="flex gap-2">
                             <button
                                 onClick={() => onDeleteOrder(order.id)}
-                                className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1.5 md:p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                 title="Delete from Memory"
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                             </button>
                         </div>
                     </div>
 
-                    <div className="bg-stone-50 rounded-lg p-3 mb-4 border border-stone-100">
-                         <p className="text-sm text-stone-600 leading-relaxed">
+                    <div className="bg-stone-50 rounded-lg p-2 md:p-3 mb-3 md:mb-4 border border-stone-100">
+                         <p className="text-xs md:text-sm text-stone-600 leading-relaxed">
                             {getFullSummary(order)}
                         </p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-2 md:gap-3">
                         <button
                         onClick={() => onLoadOrder(order)}
-                        className="flex-1 flex items-center justify-center gap-2 bg-stone-100 text-stone-700 py-2.5 px-4 rounded-lg text-sm font-semibold hover:bg-stone-200 transition-colors shadow-sm"
+                        className="flex-1 flex items-center justify-center gap-1.5 md:gap-2 bg-stone-100 text-stone-700 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-semibold hover:bg-stone-200 transition-colors shadow-sm"
                         >
-                        <ArrowRight className="w-4 h-4" /> Load
+                        <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" /> Load
                         </button>
                         <button
                             onClick={() => handleShareOrder(order)}
-                            className="flex items-center justify-center px-4 bg-white border border-stone-200 hover:border-green-300 hover:text-green-600 rounded-lg text-stone-600 transition-colors flex gap-2 font-medium"
+                            className="flex items-center justify-center px-3 md:px-4 bg-white border border-stone-200 hover:border-green-300 hover:text-green-600 rounded-lg text-stone-600 transition-colors gap-1.5 md:gap-2 font-medium text-xs md:text-sm"
                             title="Share with someone"
                         >
-                            <MessageSquare className="w-4 h-4" /> Ask Someone
+                            <MessageSquare className="w-3.5 h-3.5 md:w-4 md:h-4" /> Ask
                         </button>
                         <button
                             onClick={() => handleOpenRestaurant(order)}
-                            className="flex items-center justify-center px-4 bg-stone-900 text-white rounded-lg hover:bg-stone-700 transition-colors flex gap-2 font-medium"
+                            className="flex items-center justify-center px-3 md:px-4 bg-stone-900 text-white rounded-lg hover:bg-stone-700 transition-colors gap-1.5 md:gap-2 font-medium text-xs md:text-sm"
                             title={`Order on ${r?.name}`}
                         >
-                            <ShoppingBag className="w-4 h-4" /> Order
+                            <ShoppingBag className="w-3.5 h-3.5 md:w-4 md:h-4" /> Order
                         </button>
                     </div>
                     </div>

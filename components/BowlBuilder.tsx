@@ -109,22 +109,22 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
     <div className="flex flex-col h-full bg-stone-50 rounded-xl overflow-hidden shadow-sm border border-stone-200">
       
       {/* Category Tabs */}
-      <div className="flex overflow-x-auto bg-white border-b border-stone-200 p-2 gap-2 no-scrollbar">
+      <div className="flex overflow-x-auto bg-white border-b border-stone-200 p-1.5 md:p-2 gap-1.5 md:gap-2 no-scrollbar">
         {presets && presets.length > 0 && (
             <button
             onClick={() => setCategoryFilter('PRESETS')}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1 ${
+            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1 ${
                 categoryFilter === 'PRESETS'
                 ? `${activeClass} text-white`
                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}
             >
-            <Star className="w-3 h-3" /> Curated Bowls
+            <Star className="w-3 h-3" /> <span className="hidden sm:inline">Curated Bowls</span><span className="sm:hidden">Presets</span>
             </button>
         )}
         <button
           onClick={() => setCategoryFilter('ALL')}
-          className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+          className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
             categoryFilter === 'ALL'
               ? `${activeClass} text-white`
               : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
@@ -136,7 +136,7 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
           <button
             key={cat}
             onClick={() => setCategoryFilter(cat)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
               categoryFilter === cat
                 ? `${activeClass} text-white`
                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
@@ -148,19 +148,19 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-4 md:space-y-6">
         
         {/* Manual Additions */}
         {categoryFilter === 'ALL' && (
-            <div className="bg-white p-4 rounded-xl border border-dashed border-stone-300">
+            <div className="bg-white p-3 md:p-4 rounded-xl border border-dashed border-stone-300">
                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-bold text-stone-700 flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> Manual Additions
+                    <h3 className="text-xs md:text-sm font-bold text-stone-700 flex items-center gap-2">
+                        <Plus className="w-3 h-3 md:w-4 md:h-4" /> Manual Additions
                     </h3>
                     {(selectedIds.length > 0 || customItems.length > 0) && (
                          <button 
                             onClick={handleShareConfig}
-                            className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                            className="text-[10px] md:text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
                          >
                             <Share2 className="w-3 h-3" /> Share Request
                          </button>
@@ -172,23 +172,23 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
                         type="text" 
                         value={newCustomItem}
                         onChange={(e) => setNewCustomItem(e.target.value)}
-                        placeholder="Add special request or extra item..."
-                        className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-stone-400 focus:outline-none"
+                        placeholder="Add special request..."
+                        className="flex-1 border border-stone-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm focus:ring-2 focus:ring-stone-400 focus:outline-none"
                     />
                     <button 
                         type="submit"
-                        className="bg-stone-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-stone-900"
+                        className="bg-stone-800 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium hover:bg-stone-900"
                     >
                         Add
                     </button>
                 </form>
                 {customItems.length > 0 && (
-                    <ul className="space-y-2">
+                    <ul className="space-y-1.5 md:space-y-2">
                         {customItems.map((item, idx) => (
-                            <li key={idx} className="flex items-center justify-between bg-stone-50 p-2 rounded-lg border border-stone-100">
-                                <span className="text-sm text-stone-800">{item}</span>
+                            <li key={idx} className="flex items-center justify-between bg-stone-50 p-1.5 md:p-2 rounded-lg border border-stone-100">
+                                <span className="text-xs md:text-sm text-stone-800">{item}</span>
                                 <button onClick={() => onRemoveCustomItem(idx)} className="text-stone-400 hover:text-red-500">
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                                 </button>
                             </li>
                         ))}
@@ -199,20 +199,20 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
 
         {/* Presets Grid */}
         {categoryFilter === 'PRESETS' && presets ? (
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2 md:gap-3">
                 {presets.map((preset) => (
                     <button
                         key={preset.name}
                         onClick={() => onSelectPreset(preset)}
-                        className="text-left p-4 rounded-xl border border-stone-200 bg-white hover:border-orange-300 hover:shadow-md transition-all group"
+                        className="text-left p-3 md:p-4 rounded-xl border border-stone-200 bg-white hover:border-orange-300 hover:shadow-md transition-all group"
                     >
                         <div className="flex justify-between items-start mb-1">
-                            <h3 className="font-bold text-stone-900 group-hover:text-orange-600">{preset.name}</h3>
-                            <span className="text-sm font-medium text-stone-600">${preset.price}</span>
+                            <h3 className="font-bold text-sm md:text-base text-stone-900 group-hover:text-orange-600">{preset.name}</h3>
+                            <span className="text-xs md:text-sm font-medium text-stone-600">${preset.price}</span>
                         </div>
-                        <p className="text-xs text-stone-500 mb-2">{preset.calories} Calories</p>
-                        <p className="text-sm text-stone-600">{preset.description}</p>
-                        <div className="mt-3 text-xs text-stone-400 uppercase tracking-wider font-semibold group-hover:text-orange-500">
+                        <p className="text-[10px] md:text-xs text-stone-500 mb-1.5 md:mb-2">{preset.calories} Calories</p>
+                        <p className="text-xs md:text-sm text-stone-600">{preset.description}</p>
+                        <div className="mt-2 md:mt-3 text-[10px] md:text-xs text-stone-400 uppercase tracking-wider font-semibold group-hover:text-orange-500">
                             Load Menu
                         </div>
                     </button>
@@ -220,7 +220,7 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
             </div>
         ) : (
             /* Ingredients Grid */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
             {filteredItems.map((item) => {
                 const isSelected = selectedIds.includes(item.id);
                 const isModifying = activeModItem === item.id;
@@ -229,7 +229,7 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
                 <div key={item.id} className="relative">
                 <button
                     onClick={() => onToggleItem(item.id)}
-                    className={`relative w-full group text-left p-4 rounded-xl border transition-all duration-200 ${
+                    className={`relative w-full group text-left p-3 md:p-4 rounded-xl border transition-all duration-200 ${
                     isSelected
                         ? `border-current bg-stone-50 shadow-md ring-1 ring-current text-stone-900`
                         : 'border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm'
@@ -238,20 +238,20 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
                 >
                      <div className={`absolute inset-0 rounded-xl border pointer-events-none ${isSelected ? `border-current opacity-100` : 'border-transparent'}`}></div>
                      
-                    <div className="flex justify-between items-start mb-1 relative z-10">
-                    <span className={`font-semibold text-sm ${isSelected ? 'text-stone-900' : 'text-stone-800'}`}>
+                    <div className="flex justify-between items-start mb-0.5 md:mb-1 relative z-10">
+                    <span className={`font-semibold text-xs md:text-sm ${isSelected ? 'text-stone-900' : 'text-stone-800'}`}>
                         {item.name}
                     </span>
-                    {isSelected && <Check className="w-4 h-4 text-stone-900" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 md:w-4 md:h-4 text-stone-900" />}
                     </div>
                     
-                    <div className="flex items-center gap-2 text-xs text-stone-500 mb-2 relative z-10">
+                    <div className="flex items-center gap-2 text-[10px] md:text-xs text-stone-500 mb-1.5 md:mb-2 relative z-10">
                     <span>{item.calories} cal</span>
                     {item.premium && <span className="text-amber-600 font-medium px-1.5 py-0.5 bg-amber-100 rounded text-[10px]">Premium</span>}
                     </div>
 
                     {item.description && (
-                    <p className="text-xs text-stone-400 line-clamp-2 relative z-10">{item.description}</p>
+                    <p className="text-[10px] md:text-xs text-stone-400 line-clamp-2 relative z-10">{item.description}</p>
                     )}
                     
                     <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -274,7 +274,7 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
                         {!isModifying ? (
                             <button 
                                 onClick={() => setActiveModItem(item.id)}
-                                className="text-xs flex items-center gap-1 text-stone-400 hover:text-blue-600 transition-colors"
+                                className="text-[10px] md:text-xs flex items-center gap-1 text-stone-400 hover:text-blue-600 transition-colors"
                             >
                                 <Settings2 className="w-3 h-3" /> Customize
                             </button>
