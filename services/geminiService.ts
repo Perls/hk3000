@@ -20,7 +20,7 @@ const ORDER_SCHEMA: Schema = {
     },
     reasoning: {
       type: Type.STRING,
-      description: "A short, fun explanation of why these ingredients work well together",
+      description: "A helpful explanation. If the user asked a question, answer it here. Mention spice levels if relevant.",
     },
   },
   required: ["orderName", "itemIds", "reasoning"],
@@ -96,17 +96,18 @@ export const parseNaturalLanguageOrder = async (
     const menuContext = menu.map(item => `${item.name} (ID: ${item.id}, Cat: ${item.category})`).join(', ');
     
     const systemInstruction = `
-      You are an expert ${restaurantName} ordering assistant. 
-      Your goal is to interpret a user's natural language desire and map it to a valid list of ingredient IDs from the provided menu.
+      You are an expert ${restaurantName} AI Chef. 
+      Your goal is to interpret a user's natural language desire, answer their culinary questions by building a relevant order, and map it to a valid list of ingredient IDs from the provided menu.
       
       Available Menu Items for ${restaurantName}:
       ${menuContext}
       
       Rules:
       1. ONLY use IDs provided in the menu context.
-      2. If the user mentions vague terms like "healthy", "spicy", or "classic", interpret them based on the specific ingredients available.
-      3. Construct a logical order (e.g., Base + Protein + Toppings).
-      4. Ignore ingredients not in the list.
+      2. If the user asks a question (e.g. "Is the chicken spicy?"), answer it within the "reasoning" field AND suggest a relevant order (e.g. create a bowl with that chicken).
+      3. In the "reasoning" field, be helpful and specific about flavors (especially spice levels), textures, and why you chose these items.
+      4. Construct a logical order (e.g., Base + Protein + Toppings).
+      5. Ignore ingredients not in the list.
     `;
 
     const response = await ai.models.generateContent({
@@ -296,3 +297,4 @@ export const generateItemModifications = async (
     return [];
   }
 };
+
