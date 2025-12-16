@@ -39,6 +39,15 @@ const App: React.FC = () => {
 
   // Favorites State
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('hickory_favorites');
+    if (saved) {
+        try {
+            return new Set(JSON.parse(saved));
+        } catch (e) {
+            console.error("Failed to parse saved favorites", e);
+        }
+    }
+
     // Start with all hardcoded restaurants
     const defaults = new Set(RESTAURANTS.map(r => r.id));
     // Add specific closest Fairfield locations
@@ -110,6 +119,7 @@ const App: React.FC = () => {
           newSet.add(id);
       }
       setFavoriteIds(newSet);
+      localStorage.setItem('hickory_favorites', JSON.stringify(Array.from(newSet)));
   };
 
   const handleAddRestaurant = (r: Restaurant) => {
@@ -494,3 +504,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
