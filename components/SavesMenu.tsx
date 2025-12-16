@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Order, Restaurant } from '../types';
-import { Copy, Trash2, ArrowRight, ShoppingBag, ArrowLeft, History, Save, X } from 'lucide-react';
+import { Copy, Trash2, ArrowRight, ShoppingBag, ArrowLeft, History, Save, X, Share2, MessageSquare } from 'lucide-react';
 import { ALL_INGREDIENTS } from '../constants';
 
 interface SavesMenuProps {
@@ -66,6 +66,35 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({
       const summary = `${r?.name || 'Food'} Order: ${order.name}\nIngredients: ${getFullSummary(order)}`;
       navigator.clipboard.writeText(summary);
       alert("Order summary copied to clipboard!");
+  };
+
+  const handleShareOrder = async (order: Order) => {
+    const r = getRestaurant(order.restaurantId);
+    
+    // Construct a friendly message
+    const ingredients = order.items.map((id) => ALL_INGREDIENTS.find((i) => i.id === id)?.name).filter(Boolean);
+    const manual = order.customItems || [];
+    
+    const itemList = [...ingredients, ...manual].map(i => `• ${i}`).join('\n');
+    
+    const text = `Hey, can you grab this for me from ${r?.name}?\n\n` + 
+                 `Order: ${order.name}\n` + 
+                 `${itemList}\n\n` + 
+                 `Thanks!`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Order for ${r?.name}`,
+          text: text
+        });
+      } catch (e) {
+        console.log("Share cancelled");
+      }
+    } else {
+      navigator.clipboard.writeText(text);
+      alert("Order request copied to clipboard! You can paste it to a friend.");
+    }
   };
 
   const handleOpenRestaurant = (order: Order) => {
@@ -229,23 +258,23 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({
                     <div className="flex gap-3">
                         <button
                         onClick={() => onLoadOrder(order)}
-                        className="flex-1 flex items-center justify-center gap-2 bg-stone-900 text-white py-2.5 px-4 rounded-lg text-sm font-semibold hover:bg-stone-800 transition-colors shadow-sm"
+                        className="flex-1 flex items-center justify-center gap-2 bg-stone-100 text-stone-700 py-2.5 px-4 rounded-lg text-sm font-semibold hover:bg-stone-200 transition-colors shadow-sm"
                         >
-                        Load Configuration <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-4 h-4" /> Load
                         </button>
                         <button
-                            onClick={() => handleCopySummary(order)}
-                            className="flex items-center justify-center px-4 bg-white border border-stone-200 hover:border-stone-300 hover:bg-stone-50 rounded-lg text-stone-600 transition-colors"
-                            title="Copy Summary to Clipboard"
+                            onClick={() => handleShareOrder(order)}
+                            className="flex items-center justify-center px-4 bg-white border border-stone-200 hover:border-green-300 hover:text-green-600 rounded-lg text-stone-600 transition-colors flex gap-2 font-medium"
+                            title="Share with someone"
                         >
-                            <Copy className="w-4 h-4" />
+                            <MessageSquare className="w-4 h-4" /> Ask Someone
                         </button>
                         <button
                             onClick={() => handleOpenRestaurant(order)}
-                            className="flex items-center justify-center px-4 bg-white border border-stone-200 hover:border-blue-300 hover:text-blue-600 rounded-lg text-stone-600 transition-colors"
+                            className="flex items-center justify-center px-4 bg-stone-900 text-white rounded-lg hover:bg-stone-700 transition-colors flex gap-2 font-medium"
                             title={`Order on ${r?.name}`}
                         >
-                            <ShoppingBag className="w-4 h-4" />
+                            <ShoppingBag className="w-4 h-4" /> Order
                         </button>
                     </div>
                     </div>

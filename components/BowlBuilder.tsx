@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Ingredient, Preset } from '../types';
-import { Check, Flame, Leaf, Star, Plus, Trash2, Settings2, Sparkles, Loader2, PlusCircle } from 'lucide-react';
+import { Check, Flame, Star, Plus, Trash2, Settings2, Sparkles, Loader2, Share2 } from 'lucide-react';
 import { generateItemModifications } from '../services/geminiService';
 
 interface BowlBuilderProps {
@@ -77,6 +77,34 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
       onAddCustomItem(`${itemName}: ${mod}`);
   };
 
+  const handleShareConfig = async () => {
+    const selectedNames = menu.filter(i => selectedIds.includes(i.id)).map(i => i.name);
+    const allItems = [...selectedNames, ...customItems];
+    
+    if (allItems.length === 0) {
+      alert("Add items to your order before sharing.");
+      return;
+    }
+
+    const text = `Can you get this for me from ${restaurantName}?\n\n` + 
+                 allItems.map(item => `• ${item}`).join('\n') + 
+                 `\n\nThanks!`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${restaurantName} Order`,
+          text: text,
+        });
+      } catch (err) {
+        console.log("Share cancelled");
+      }
+    } else {
+      navigator.clipboard.writeText(text);
+      alert("Order request copied to clipboard! You can paste it in a message.");
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-stone-50 rounded-xl overflow-hidden shadow-sm border border-stone-200">
       
@@ -125,9 +153,20 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
         {/* Manual Additions */}
         {categoryFilter === 'ALL' && (
             <div className="bg-white p-4 rounded-xl border border-dashed border-stone-300">
-                <h3 className="text-sm font-bold text-stone-700 mb-2 flex items-center gap-2">
-                    <Plus className="w-4 h-4" /> Manual Additions
-                </h3>
+                <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-bold text-stone-700 flex items-center gap-2">
+                        <Plus className="w-4 h-4" /> Manual Additions
+                    </h3>
+                    {(selectedIds.length > 0 || customItems.length > 0) && (
+                         <button 
+                            onClick={handleShareConfig}
+                            className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                         >
+                            <Share2 className="w-3 h-3" /> Share Request
+                         </button>
+                    )}
+                </div>
+                
                 <form onSubmit={handleAddCustom} className="flex gap-2 mb-3">
                     <input 
                         type="text" 
@@ -225,8 +264,7 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
                 {/* Customization Toggle */}
                 {isSelected && (
                     <div className="absolute top-2 right-2 z-20">
-                         {/* We handle customization below, but could put a gear icon here if needed. 
-                             Instead, let's put the customization panel BELOW the item if selected. */}
+                         {/* We handle customization below */}
                     </div>
                 )}
                 
