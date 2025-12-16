@@ -1,14 +1,16 @@
+
 import React, { useState } from 'react';
 import { generateMenuFromContext } from '../services/geminiService';
 import { Ingredient, Preset, Restaurant } from '../types';
-import { Globe, Loader2, Sparkles, ChefHat, Layers } from 'lucide-react';
+import { Globe, Loader2, Sparkles, ChefHat, Layers, ArrowLeft } from 'lucide-react';
 
 interface MenuImporterProps {
   restaurant: Restaurant;
   onImport: (menu: Ingredient[], presets: Preset[]) => void;
+  onCancel?: () => void;
 }
 
-export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport }) => {
+export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport, onCancel }) => {
   const [url, setUrl] = useState('');
   const [loadingMode, setLoadingMode] = useState<'standard' | 'deep' | null>(null);
   const [statusMsg, setStatusMsg] = useState('');
@@ -53,7 +55,13 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-4 md:p-8 bg-stone-50 rounded-xl border border-dashed border-stone-300">
+    <div className="flex flex-col items-center justify-center h-full p-4 md:p-8 bg-stone-50 rounded-xl border border-dashed border-stone-300 relative">
+      {onCancel && (
+          <button onClick={onCancel} className="absolute top-4 left-4 text-stone-400 hover:text-stone-600 flex items-center gap-1 text-sm">
+              <ArrowLeft className="w-4 h-4" /> Cancel
+          </button>
+      )}
+
       <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 md:mb-6">
         <Globe className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
       </div>

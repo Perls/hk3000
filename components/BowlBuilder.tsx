@@ -1,6 +1,7 @@
+
 import React, { useMemo, useState } from 'react';
 import { Ingredient, Preset } from '../types';
-import { Check, Flame, Star, Plus, Trash2, Settings2, Sparkles, Loader2, Share2 } from 'lucide-react';
+import { Check, Flame, Star, Plus, Trash2, Settings2, Sparkles, Loader2, Share2, History, RefreshCw } from 'lucide-react';
 import { generateItemModifications } from '../services/geminiService';
 
 interface BowlBuilderProps {
@@ -16,6 +17,12 @@ interface BowlBuilderProps {
   setCategoryFilter: (cat: string | 'ALL') => void;
   restaurantColor: string;
   restaurantName?: string;
+  
+  // New props for versioning
+  availableVersions?: {id: string, label: string}[];
+  currentVersionId?: string;
+  onVersionChange?: (id: string) => void;
+  onScrapeNew?: () => void;
 }
 
 export const BowlBuilder: React.FC<BowlBuilderProps> = ({
@@ -30,7 +37,11 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
   categoryFilter,
   setCategoryFilter,
   restaurantColor,
-  restaurantName = "Restaurant"
+  restaurantName = "Restaurant",
+  availableVersions = [],
+  currentVersionId,
+  onVersionChange,
+  onScrapeNew
 }) => {
   const [newCustomItem, setNewCustomItem] = useState('');
   
@@ -108,8 +119,34 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
   return (
     <div className="flex flex-col h-full bg-stone-50 rounded-xl overflow-hidden shadow-sm border border-stone-200">
       
+      {/* Version Control Header */}
+      <div className="bg-white border-b border-stone-200 px-3 py-2 flex items-center justify-between">
+         <div className="flex items-center gap-2">
+             <History className="w-3.5 h-3.5 text-stone-400" />
+             <select 
+                value={currentVersionId || ''}
+                onChange={(e) => onVersionChange && onVersionChange(e.target.value)}
+                className="text-xs md:text-sm text-stone-600 bg-transparent border-none font-medium focus:ring-0 cursor-pointer p-0 pr-6 truncate max-w-[200px] md:max-w-xs"
+             >
+                 {availableVersions.length === 0 && <option value="">No Menus Available</option>}
+                 {availableVersions.map(v => (
+                     <option key={v.id} value={v.id}>{v.label}</option>
+                 ))}
+                 <option value="NEW" disabled>--</option>
+             </select>
+         </div>
+         {onScrapeNew && (
+             <button 
+                onClick={onScrapeNew}
+                className="flex items-center gap-1 text-[10px] md:text-xs font-semibold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
+             >
+                 <RefreshCw className="w-3 h-3" /> Scrape New
+             </button>
+         )}
+      </div>
+
       {/* Category Tabs */}
-      <div className="flex overflow-x-auto bg-white border-b border-stone-200 p-1.5 md:p-2 gap-1.5 md:gap-2 no-scrollbar">
+      <div className="flex overflow-x-auto bg-white border-b border-stone-200 p-1.5 md:p-2 gap-1.5 md:gap-2 no-scrollbar shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
         {presets && presets.length > 0 && (
             <button
             onClick={() => setCategoryFilter('PRESETS')}

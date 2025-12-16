@@ -1,3 +1,4 @@
+
 export interface Ingredient {
   id: string;
   name: string;
@@ -24,6 +25,16 @@ export interface Restaurant {
   url?: string; // External ordering URL
   menu: Ingredient[];
   presets?: Preset[];
+}
+
+export interface SavedMenu {
+  id: string;
+  restaurantId: string;
+  timestamp: number;
+  menu: Ingredient[];
+  presets: Preset[];
+  sourceUrl?: string;
+  label?: string; // Optional user friendly label
 }
 
 export interface Order {

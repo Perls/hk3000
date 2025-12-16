@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { SavesMenu } from './components/SavesMenu';
 import { GeminiAssistant } from './components/GeminiAssistant';
@@ -11,7 +12,7 @@ import { JoseTejas } from './components/restaurants/JoseTejas';
 import { ShakeShack } from './components/restaurants/ShakeShack';
 import { FranklinSteakhouse } from './components/restaurants/FranklinSteakhouse';
 import { Calandras } from './components/restaurants/Calandras';
-import { Order, AIOrderSuggestion, Preset, Ingredient } from './types';
+import { Order, AIOrderSuggestion, Preset, Ingredient, SavedMenu } from './types';
 import { RESTAURANTS } from './constants';
 import { FAIRFIELD_RESTAURANTS } from './data/fairfield';
 import { Save, User, Utensils, X, ChevronLeft, History, PenTool, MapPin, Star, Archive, Dices, Sparkles } from 'lucide-react';
@@ -27,6 +28,10 @@ const App: React.FC = () => {
   const [savedOrders, setSavedOrders] = useState<Order[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | 'ALL'>('PRESETS'); 
   const [userName, setUserName] = useState('David');
+
+  // Menu Versioning State
+  const [savedMenus, setSavedMenus] = useState<Record<string, SavedMenu[]>>({});
+  const [activeMenuVersionId, setActiveMenuVersionId] = useState<string | 'SYSTEM' | 'NEW' | null>(null);
 
   // Pending Save State
   const [pendingSaveOrder, setPendingSaveOrder] = useState<{
@@ -45,10 +50,7 @@ const App: React.FC = () => {
   const [isRandomizing, setIsRandomizing] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Dynamic Menus (Scraped/Generated)
-  const [dynamicMenus, setDynamicMenus] = useState<Record<string, { menu: Ingredient[], presets: Preset[] }>>({});
-
-  // Load Saved Orders
+  // Load Saved Orders & Menus
   useEffect(() => {
     const saved = localStorage.getItem('hickory_saved_orders');
     if (saved) {
@@ -58,10 +60,23 @@ const App: React.FC = () => {
         console.error("Failed to load orders");
       }
     }
+    
+    const savedMenusRaw = localStorage.getItem('hickory_saved_menus');
+    if (savedMenusRaw) {
+        try {
+            setSavedMenus(JSON.parse(savedMenusRaw));
+        } catch (e) {
+            console.error("Failed to load menus");
+        }
+    }
   }, []);
 
   const saveToStorage = (orders: Order[]) => {
     localStorage.setItem('hickory_saved_orders', JSON.stringify(orders));
+  };
+
+  const saveMenusToStorage = (menus: Record<string, SavedMenu[]>) => {
+      localStorage.setItem('hickory_saved_menus', JSON.stringify(menus));
   };
 
   // Helpers
@@ -166,17 +181,36 @@ const App: React.FC = () => {
                 setHighlightedId(null); // Clear highlight
                 
                 // Navigate to winner
-                setActiveRestaurantId(randomId);
-                setSelectedIds([]);
-                setCustomItems([]);
-                const winnerRest = favoritesList.find(r => r.id === randomId);
-                setActiveCategory((winnerRest?.presets && winnerRest.presets.length > 0) ? 'PRESETS' : 'ALL');
-                setViewMode('BUILDER');
+                handleRestaurantSelect(randomId);
             }, 1500); // Wait 1.5s to celebrate before navigating
         }
     };
 
     spin();
+  };
+
+  const handleRestaurantSelect = (id: string) => {
+      setActiveRestaurantId(id);
+      setSelectedIds([]);
+      setCustomItems([]);
+      
+      // Determine initial version
+      const existing = savedMenus[id];
+      const rest = allRestaurants.find(r => r.id === id);
+      const isSystem = RESTAURANTS.some(r => r.id === id); // Has hardcoded data
+
+      if (existing && existing.length > 0) {
+          // Default to latest scraped
+          setActiveMenuVersionId(existing[0].id);
+          setActiveCategory(existing[0].presets.length > 0 ? 'PRESETS' : 'ALL');
+      } else if (isSystem) {
+          setActiveMenuVersionId('SYSTEM');
+          setActiveCategory(rest?.presets && rest.presets.length > 0 ? 'PRESETS' : 'ALL');
+      } else {
+          setActiveMenuVersionId('NEW'); // Show importer
+      }
+      
+      setViewMode('BUILDER');
   };
 
   const toggleIngredient = (id: string) => {
@@ -253,13 +287,11 @@ const App: React.FC = () => {
   };
 
   const handleLoadOrder = (order: Order) => {
-    const restaurant = allRestaurants.find(r => r.id === order.restaurantId);
-    
-    setActiveRestaurantId(order.restaurantId || 'cava');
+    handleRestaurantSelect(order.restaurantId);
+    // Overwrite defaults from handleRestaurantSelect
     setSelectedIds(order.items);
     setCustomItems(order.customItems || []);
     setActiveCategory('ALL');
-    setViewMode('BUILDER');
   };
 
   const handleApplyAISuggestion = (suggestion: AIOrderSuggestion) => {
@@ -268,25 +300,59 @@ const App: React.FC = () => {
     alert(`System Logic: ${suggestion.reasoning}`);
   };
 
-  const calculateTotalCalories = () => {
-    if (!activeRestaurant) return 0;
-    const dynamicData = dynamicMenus[activeRestaurant.id];
-    const menuToUse: Ingredient[] = dynamicData ? dynamicData.menu : activeRestaurant.menu;
-    
-    return selectedIds.reduce((acc, id) => {
-      const item = menuToUse.find((i: Ingredient) => i.id === id);
-      return acc + (item?.calories || 0);
-    }, 0);
+  // --- Dynamic Menu Logic ---
+  
+  const handleMenuImport = (menu: Ingredient[], presets: Preset[]) => {
+      if (!activeRestaurantId) return;
+
+      const newMenu: SavedMenu = {
+          id: crypto.randomUUID(),
+          restaurantId: activeRestaurantId,
+          timestamp: Date.now(),
+          menu,
+          presets,
+          sourceUrl: '' // In a real app we'd pass this from Importer
+      };
+
+      const existingForRest = savedMenus[activeRestaurantId] || [];
+      const updated = {
+          ...savedMenus,
+          [activeRestaurantId]: [newMenu, ...existingForRest]
+      };
+      
+      setSavedMenus(updated);
+      saveMenusToStorage(updated);
+      setActiveMenuVersionId(newMenu.id);
+      setActiveCategory('ALL');
   };
 
-  const handleMenuImport = (menu: Ingredient[], presets: Preset[]) => {
-      if (activeRestaurantId) {
-          setDynamicMenus(prev => ({
-              ...prev,
-              [activeRestaurantId]: { menu, presets }
-          }));
-          setActiveCategory('ALL');
+  // Helper to determine active menu data
+  const getActiveMenuData = () => {
+      if (!activeRestaurantId) return { menu: [], presets: [] };
+
+      // Case 1: Saved Menu selected
+      if (activeMenuVersionId && activeMenuVersionId !== 'SYSTEM' && activeMenuVersionId !== 'NEW') {
+          const menus = savedMenus[activeRestaurantId];
+          const found = menus?.find(m => m.id === activeMenuVersionId);
+          if (found) return { menu: found.menu, presets: found.presets };
       }
+
+      // Case 2: System Default
+      const systemRest = RESTAURANTS.find(r => r.id === activeRestaurantId);
+      if (systemRest) return { menu: systemRest.menu, presets: systemRest.presets || [] };
+
+      // Case 3: Nothing available (Implying NEW)
+      return { menu: [], presets: [] };
+  };
+
+  const calculateTotalCalories = () => {
+    if (!activeRestaurant) return 0;
+    const { menu } = getActiveMenuData();
+    
+    return selectedIds.reduce((acc, id) => {
+      const item = menu.find((i: Ingredient) => i.id === id);
+      return acc + (item?.calories || 0);
+    }, 0);
   };
 
   // --- Views ---
@@ -309,7 +375,25 @@ const App: React.FC = () => {
 
   // 2. Builder View
   if (viewMode === 'BUILDER' && activeRestaurant) {
-      // Dynamic Rendering Logic for Builder
+      
+      const { menu: currentMenu, presets: currentPresets } = getActiveMenuData();
+      const showImporter = activeMenuVersionId === 'NEW';
+      
+      // Determine available versions for Dropdown
+      const savedForRest = savedMenus[activeRestaurant.id] || [];
+      const hasSystem = RESTAURANTS.some(r => r.id === activeRestaurant.id);
+      
+      const versionOptions = [];
+      if (hasSystem) {
+          versionOptions.push({ id: 'SYSTEM', label: 'System Default' });
+      }
+      savedForRest.forEach(m => {
+          versionOptions.push({ 
+              id: m.id, 
+              label: `Scraped: ${new Date(m.timestamp).toLocaleDateString()} ${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}` 
+          });
+      });
+
       const restaurantProps = {
           selectedIds,
           customItems,
@@ -319,35 +403,59 @@ const App: React.FC = () => {
           onRemoveCustomItem: handleRemoveCustomItem,
           categoryFilter: activeCategory,
           setCategoryFilter: setActiveCategory,
-          restaurantName: activeRestaurant.name
+          restaurantName: activeRestaurant.name,
+          
+          // Versioning props
+          availableVersions: versionOptions,
+          currentVersionId: activeMenuVersionId || '',
+          onVersionChange: (id: string) => setActiveMenuVersionId(id),
+          onScrapeNew: () => setActiveMenuVersionId('NEW')
       };
 
       let BuilderContent;
-      const isHardcoded = RESTAURANTS.some(r => r.id === activeRestaurant.id);
-      const dynamicData = dynamicMenus[activeRestaurant.id];
-
-      if (isHardcoded) {
-          switch (activeRestaurant.id) {
-              case 'cava': BuilderContent = <Cava {...restaurantProps} />; break;
-              case 'chipotle': BuilderContent = <Chipotle {...restaurantProps} />; break;
-              case 'sweetgreen': BuilderContent = <Sweetgreen {...restaurantProps} />; break;
-              case 'jerseymikes': BuilderContent = <JerseyMikes {...restaurantProps} />; break;
-              case 'josetejas': BuilderContent = <JoseTejas {...restaurantProps} />; break;
-              case 'shakeshack': BuilderContent = <ShakeShack {...restaurantProps} />; break;
-              case 'franklin': BuilderContent = <FranklinSteakhouse {...restaurantProps} />; break;
-              case 'calandras': BuilderContent = <Calandras {...restaurantProps} />; break;
-              default: BuilderContent = <BowlBuilder menu={activeRestaurant.menu} presets={activeRestaurant.presets} restaurantColor={activeRestaurant.color} {...restaurantProps} />;
-          }
+      
+      if (showImporter) {
+          BuilderContent = <MenuImporter 
+              restaurant={activeRestaurant} 
+              onImport={handleMenuImport}
+              onCancel={versionOptions.length > 0 ? () => setActiveMenuVersionId(versionOptions[0].id) : undefined}
+          />;
       } else {
-          // Fairfield Place
-          if (dynamicData && dynamicData.menu.length > 0) {
-              BuilderContent = <BowlBuilder menu={dynamicData.menu} presets={dynamicData.presets} restaurantColor={activeRestaurant.color} {...restaurantProps} />;
+          // If we have specific component for system data AND we are in system mode
+          const isSystemMode = activeMenuVersionId === 'SYSTEM';
+          
+          // We can just use BowlBuilder for everything unless specific layout is needed.
+          // For now, to support dynamic switching, we will use BowlBuilder primarily.
+          // If strict specialized components are needed (like Cava having special logic), we would check ID.
+          // But since the request is about scraped data, generic BowlBuilder is best.
+          
+          if (isSystemMode && activeRestaurant.id === 'cava') {
+               BuilderContent = <Cava {...restaurantProps} />;
+          } else if (isSystemMode && activeRestaurant.id === 'chipotle') {
+               BuilderContent = <Chipotle {...restaurantProps} />;
+          } else if (isSystemMode && activeRestaurant.id === 'sweetgreen') {
+               BuilderContent = <Sweetgreen {...restaurantProps} />;
+          } else if (isSystemMode && activeRestaurant.id === 'jerseymikes') {
+               BuilderContent = <JerseyMikes {...restaurantProps} />;
+          } else if (isSystemMode && activeRestaurant.id === 'josetejas') {
+               BuilderContent = <JoseTejas {...restaurantProps} />;
+          } else if (isSystemMode && activeRestaurant.id === 'shakeshack') {
+               BuilderContent = <ShakeShack {...restaurantProps} />;
+          } else if (isSystemMode && activeRestaurant.id === 'franklin') {
+               BuilderContent = <FranklinSteakhouse {...restaurantProps} />;
+          } else if (isSystemMode && activeRestaurant.id === 'calandras') {
+               BuilderContent = <Calandras {...restaurantProps} />;
           } else {
-              BuilderContent = <MenuImporter restaurant={activeRestaurant} onImport={handleMenuImport} />
+               // Default Builder (Handles Scraped Data & Generic Restaurants)
+               BuilderContent = <BowlBuilder 
+                    menu={currentMenu} 
+                    presets={currentPresets} 
+                    restaurantColor={activeRestaurant.color} 
+                    {...restaurantProps} 
+               />;
           }
       }
 
-      const currentMenu = isHardcoded ? activeRestaurant.menu : (dynamicData?.menu || []);
       const isFav = favoriteIds.has(activeRestaurant.id);
 
       return (
@@ -392,7 +500,7 @@ const App: React.FC = () => {
                     {BuilderContent}
                 </div>
                 <div className="md:col-span-4 lg:col-span-3 space-y-4">
-                    {(isHardcoded || (dynamicData && dynamicData.menu.length > 0)) && (
+                    {!showImporter && (
                         <>
                         <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-4 md:p-5 sticky top-24">
                             <div className="flex justify-between items-center mb-3 md:mb-4">
@@ -542,11 +650,7 @@ const App: React.FC = () => {
                                 key={r.id}
                                 onClick={() => {
                                     if (!isRandomizing) {
-                                        setActiveRestaurantId(r.id);
-                                        setSelectedIds([]);
-                                        setCustomItems([]);
-                                        setActiveCategory(r.presets && r.presets.length > 0 ? 'PRESETS' : 'ALL');
-                                        setViewMode('BUILDER');
+                                        handleRestaurantSelect(r.id);
                                     }
                                 }}
                                 disabled={isRandomizing}
@@ -589,11 +693,7 @@ const App: React.FC = () => {
                             key={r.id}
                             onClick={() => {
                                 if (isRandomizing) return;
-                                setActiveRestaurantId(r.id);
-                                setSelectedIds([]);
-                                setCustomItems([]);
-                                setActiveCategory('ALL');
-                                setViewMode('BUILDER');
+                                handleRestaurantSelect(r.id);
                             }}
                             className="bg-white rounded-lg p-2 md:p-3 border border-stone-200 hover:border-blue-400 hover:shadow-md transition-all text-left flex items-center gap-2 md:gap-3"
                         >
