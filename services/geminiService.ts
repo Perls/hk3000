@@ -118,58 +118,85 @@ export const parseNaturalLanguageOrder = async (
   }
 };
 
+// Helper: Stage 1 - Search for raw text content
+async function searchForMenuInfo(restaurantName: string, context: string, mode: 'standard' | 'deep'): Promise<string> {
+  const isDeep = mode === 'deep';
+  const prompt = isDeep 
+    ? `Perform a deep search for the complete menu of ${restaurantName} (URL/Context: ${context}). Find appetizers, entrees, sides, desserts, and drinks. Include ingredient details and prices if possible.`
+    : `Find the current menu items for ${restaurantName} (URL/Context: ${context}). List main dishes and prices.`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+    config: {
+      tools: [{ googleSearch: {} }], // Use Search Grounding to actually see the web
+      // NOTE: responseSchema is NOT allowed with googleSearch
+    }
+  });
+
+  return response.text || "";
+}
+
+// Helper: Stage 2 - Structure raw text into JSON
+async function structureMenuData(restaurantName: string, rawText: string): Promise<{ menu: Ingredient[], presets: Preset[] } | null> {
+  const systemInstruction = `
+    You are a data structuring engine.
+    Take the provided menu text for "${restaurantName}" and convert it into the strict JSON schema provided.
+    
+    Source Text:
+    ${rawText.substring(0, 30000)}
+
+    Rules:
+    1. Generate unique, URL-safe IDs (e.g. 'item-burger', 'item-coke').
+    2. Group items into 5-10 logical Categories (e.g. "Appetizers", "Main Course", "Sides").
+    3. If prices are missing in the text, estimate them based on typical restaurant pricing.
+    4. Create 3-5 Presets that combine items logically.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: "Structure this menu data.",
+    config: {
+      systemInstruction: systemInstruction,
+      responseMimeType: "application/json",
+      responseSchema: MENU_GENERATION_SCHEMA,
+      temperature: 0.2,
+    }
+  });
+
+  if (response.text) {
+    return JSON.parse(response.text);
+  }
+  return null;
+}
+
 export const generateMenuFromContext = async (
   restaurantName: string,
   context: string,
   mode: 'standard' | 'deep' = 'standard'
 ): Promise<{ menu: Ingredient[], presets: Preset[] } | null> => {
   try {
-    const baseInstruction = `
-      You are a menu digitization expert. 
-      Generate a realistic, structured menu for a restaurant named "${restaurantName}".
-      
-      Context provided by user (URL or text): "${context}"
-      
-      Ensure IDs are unique and URL-friendly (e.g., "res-burger").
-      Estimate calories and prices if not explicit.
-    `;
+    const isUrl = context.trim().match(/^(http|www\.)/i);
+    let rawContext = context;
 
-    const standardModeInstruction = `
-      ${baseInstruction}
-      If the context is a URL, assume you visited it and extracted the likely menu items based on the restaurant's name and typical cuisine directly visible on that page.
-      
-      Create 20-30 distinct menu items categorized logically.
-      Create 2-3 Presets.
-    `;
-
-    const deepModeInstruction = `
-      ${baseInstruction}
-      *** DEEP SCAN MODE ACTIVATED ***
-      The context is a starting URL. 
-      1. Assume you are a web crawler visiting this URL.
-      2. Simulate clicking on navigational links such as "Dinner Menu", "Lunch Menu", "Order Online", "Specialties", or specific food category links (e.g. "Sushi", "Steaks").
-      3. "Traverse" these simulated links to gather a comprehensive list of all offerings.
-      4. Aggregate items from ALL these simulated sub-pages into one massive menu.
-      
-      Create 40-60 distinct menu items to cover the full depth of the restaurant's offerings.
-      Create 4-6 Presets based on signature combinations found during this deep dive.
-    `;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Generate menu for ${restaurantName}`,
-      config: {
-        systemInstruction: mode === 'deep' ? deepModeInstruction : standardModeInstruction,
-        responseMimeType: "application/json",
-        responseSchema: MENU_GENERATION_SCHEMA,
-        temperature: 0.5,
+    // Stage 1: If it's a URL or deep scan, use Google Search tool to get the content
+    // We cannot just pass a URL to the JSON model; it can't browse.
+    if (isUrl || mode === 'deep') {
+      try {
+        console.log(`[Gemini] Starting Stage 1: Search (${mode}) for ${restaurantName}`);
+        const searchResult = await searchForMenuInfo(restaurantName, context, mode);
+        if (searchResult) {
+          rawContext = searchResult;
+        }
+      } catch (e) {
+        console.warn("[Gemini] Search stage failed, attempting direct parse", e);
       }
-    });
-
-    if (response.text) {
-      return JSON.parse(response.text);
     }
-    return null;
+
+    // Stage 2: Structure the data
+    console.log(`[Gemini] Starting Stage 2: Structuring JSON`);
+    return await structureMenuData(restaurantName, rawContext);
+
   } catch (error) {
     console.error("Gemini Menu Gen Error:", error);
     return null;
