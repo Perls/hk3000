@@ -11,10 +11,10 @@ import { JoseTejas } from './components/restaurants/JoseTejas';
 import { ShakeShack } from './components/restaurants/ShakeShack';
 import { FranklinSteakhouse } from './components/restaurants/FranklinSteakhouse';
 import { Calandras } from './components/restaurants/Calandras';
-import { Order, AIOrderSuggestion, Preset, Restaurant, Ingredient } from './types';
+import { Order, AIOrderSuggestion, Preset, Ingredient } from './types';
 import { RESTAURANTS } from './constants';
 import { FAIRFIELD_RESTAURANTS } from './data/fairfield';
-import { Save, User, Utensils, X, ChevronLeft, LayoutGrid, History, PenTool, MapPin, Star, Archive, Dices, Sparkles, Heart } from 'lucide-react';
+import { Save, User, Utensils, X, ChevronLeft, History, PenTool, MapPin, Star, Archive, Dices, Sparkles } from 'lucide-react';
 
 const App: React.FC = () => {
   // Navigation State
@@ -36,7 +36,6 @@ const App: React.FC = () => {
   } | null>(null);
 
   // Favorites State
-  // Initial favorites are the built-in RESTAURANTS. 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => {
     return new Set(RESTAURANTS.map(r => r.id));
   });
@@ -210,7 +209,6 @@ const App: React.FC = () => {
         return;
     }
 
-    // New workflow: set pending data and go to Saves Menu which will trigger the modal
     setPendingSaveOrder({
         restaurantId: activeRestaurantId,
         items: selectedIds,
@@ -236,17 +234,11 @@ const App: React.FC = () => {
     setSavedOrders(updatedOrders);
     saveToStorage(updatedOrders);
     
-    // Clear pending state, stay on Saves view (which now shows list because pending is null)
     setPendingSaveOrder(null);
     setActiveRestaurantId(null);
   };
 
   const handleCancelSave = () => {
-      // If we cancel saving, we might want to go back to builder to keep editing?
-      // Or stay in saves menu?
-      // Usually "Cancel" in a save dialog means "Don't save, keep editing".
-      // But we switched views. 
-      // Let's go back to Builder if we have an active restaurant, otherwise Saves list.
       if (activeRestaurantId) {
           setViewMode('BUILDER');
       } else {
@@ -279,10 +271,10 @@ const App: React.FC = () => {
   const calculateTotalCalories = () => {
     if (!activeRestaurant) return 0;
     const dynamicData = dynamicMenus[activeRestaurant.id];
-    const menuToUse = dynamicData ? dynamicData.menu : activeRestaurant.menu;
+    const menuToUse: Ingredient[] = dynamicData ? dynamicData.menu : activeRestaurant.menu;
     
     return selectedIds.reduce((acc, id) => {
-      const item = menuToUse.find((i) => i.id === id);
+      const item = menuToUse.find((i: Ingredient) => i.id === id);
       return acc + (item?.calories || 0);
     }, 0);
   };
@@ -327,7 +319,6 @@ const App: React.FC = () => {
           onRemoveCustomItem: handleRemoveCustomItem,
           categoryFilter: activeCategory,
           setCategoryFilter: setActiveCategory,
-          // New prop for AI
           restaurantName: activeRestaurant.name
       };
 
@@ -423,11 +414,11 @@ const App: React.FC = () => {
                                 ) : (
                                     <>
                                         {/* Standard Items */}
-                                        {Array.from(new Set((currentMenu).filter(i => selectedIds.includes(i.id)).map(i => i.category))).map(cat => (
-                                            <div key={cat} className="border-b border-stone-100 last:border-0 pb-2">
+                                        {Array.from(new Set(currentMenu.filter((i: Ingredient) => selectedIds.includes(i.id)).map((i: Ingredient) => i.category))).map(cat => (
+                                            <div key={String(cat)} className="border-b border-stone-100 last:border-0 pb-2">
                                                 <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">{cat}</h4>
                                                 <ul className="space-y-1">
-                                                    {currentMenu.filter(i => i.category === cat && selectedIds.includes(i.id)).map(item => (
+                                                    {currentMenu.filter((i: Ingredient) => i.category === cat && selectedIds.includes(i.id)).map((item: Ingredient) => (
                                                         <li key={item.id} className="text-sm flex justify-between">
                                                             <span>{item.name}</span>
                                                             <button onClick={() => toggleIngredient(item.id)} className="text-stone-300 hover:text-red-500">

@@ -1,0 +1,65 @@
+import { Restaurant } from '../types';
+
+// Helper to generate simple placeholders
+const createPlace = (id: string, name: string, emoji: string, type: string): Restaurant => ({
+    id,
+    name,
+    logo: emoji,
+    color: 'bg-stone-600', // Default neutral color
+    url: `https://www.google.com/search?q=${name.replace(/\s/g, '+')}+Fairfield+NJ+Menu`,
+    menu: [], // Empty initially, signals dynamic loading
+    presets: []
+});
+
+export const FAIRFIELD_RESTAURANTS: Restaurant[] = [
+    createPlace('ff-doubles', 'Double S Diner', '🍳', 'Diner'),
+    createPlace('ff-nolas', "Nola's Osteria", '🍝', 'Italian'),
+    createPlace('ff-cucina', 'Cucina Calandra', '🍷', 'Italian'),
+    createPlace('ff-nikko', 'Nikko Hibachi', '🍣', 'Japanese'),
+    createPlace('ff-2920', '2920 Grille', '🥩', 'American'),
+    createPlace('ff-bellanapoli', 'Bella Napoli', '🍕', 'Pizza'),
+    createPlace('ff-tasteasia', 'Taste of Asia', '🥡', 'Asian Fusion'),
+    createPlace('ff-beyondpita', 'Beyond Pita', '🥙', 'Mediterranean'),
+    createPlace('ff-thatcher', "Thatcher McGhee's", '🍺', 'Pub'),
+    createPlace('ff-cricket', 'Cricket Hill Brewery', '🍻', 'Brewery'),
+    createPlace('ff-cheesecake', 'The Cheesecake Factory', '🍰', 'American'),
+    createPlace('ff-cooper', "Cooper's Hawk", '🍇', 'Winery/American'),
+    createPlace('ff-seasons', 'Seasons 52', '🥗', 'Grill'),
+    createPlace('ff-pfchang', "P.F. Chang's", '🥢', 'Chinese'),
+    createPlace('ff-ruthchris', "Ruth's Chris Steak House", '🥩', 'Steak'),
+    createPlace('ff-redrobin', 'Red Robin', '🍔', 'Burgers'),
+    createPlace('ff-chilis', "Chili's Grill & Bar", '🌶️', 'Tex-Mex'),
+    createPlace('ff-applebees', "Applebee's", '🍎', 'American'),
+    createPlace('ff-dunkin', 'Dunkin', '🍩', 'Coffee'),
+    createPlace('ff-starbucks', 'Starbucks', '☕', 'Coffee'),
+    createPlace('ff-wendys', "Wendy's", '🍟', 'Fast Food'),
+    createPlace('ff-mcd', "McDonald's", '🍔', 'Fast Food'),
+    createPlace('ff-bk', 'Burger King', '👑', 'Fast Food'),
+    createPlace('ff-tacobell', 'Taco Bell', '🌮', 'Fast Food'),
+    createPlace('ff-subway', 'Subway', '🥪', 'Sandwiches'),
+    createPlace('ff-panera', 'Panera Bread', '🥖', 'Bakery'),
+    createPlace('ff-fiveguys', 'Five Guys', '🥜', 'Burgers'),
+    createPlace('ff-smashburger', 'Smashburger', '🍔', 'Burgers'),
+    createPlace('ff-habit', 'The Habit Burger Grill', '🍔', 'Burgers'),
+    createPlace('ff-qdobas', 'QDOBA', '🌯', 'Mexican'),
+    createPlace('ff-moes', "Moe's Southwest Grill", '🌯', 'Mexican'),
+    createPlace('ff-tropical', 'Tropical Smoothie Cafe', '🥤', 'Smoothies'),
+    createPlace('ff-playabowls', 'Playa Bowls', '🍓', 'Acai'),
+    createPlace('ff-frutta', 'Frutta Bowls', '🥣', 'Acai'),
+    createPlace('ff-turning', 'Turning Point', '🥞', 'Breakfast'),
+    createPlace('ff-firstwatch', 'First Watch', '🍳', 'Breakfast'),
+    createPlace('ff-ihop', 'IHOP', '🥞', 'Breakfast'),
+    createPlace('ff-dennys', "Denny's", '🥓', 'Diner'),
+    createPlace('ff-outback', 'Outback Steakhouse', '🥩', 'Steak'),
+    createPlace('ff-longhorn', 'LongHorn Steakhouse', '🐂', 'Steak'),
+    createPlace('ff-texas', 'Texas Roadhouse', '🤠', 'Steak'),
+    createPlace('ff-olive', 'Olive Garden', '🍝', 'Italian'),
+    createPlace('ff-carrabbas', "Carrabba's Italian Grill", '🍷', 'Italian'),
+    createPlace('ff-bonefish', 'Bonefish Grill', '🐟', 'Seafood'),
+    createPlace('ff-legal', 'Legal Sea Foods', '🦞', 'Seafood'),
+    createPlace('ff-capital', 'The Capital Grille', '🥂', 'Fine Dining'),
+    createPlace('ff-mortons', "Morton's The Steakhouse", '🥩', 'Steak'),
+    createPlace('ff-flemings', "Fleming's Steakhouse", '🍷', 'Steak'),
+    createPlace('ff-maggianos', "Maggiano's Little Italy", '🍝', 'Italian'),
+    createPlace('ff-yardhouse', 'Yard House', '🍺', 'Pub')
+];
