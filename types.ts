@@ -25,6 +25,11 @@ export interface Restaurant {
   url?: string; // External ordering URL
   menu: Ingredient[];
   presets?: Preset[];
+  address?: string;
+  distanceFromRec?: string;
+  phoneNumber?: string;
+  rating?: number;
+  deliveryApps?: string[]; // e.g. ["DoorDash", "GrubHub", "UberEats"]
 }
 
 export interface SavedMenu {

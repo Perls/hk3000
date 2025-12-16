@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Ingredient, Preset } from '../types';
 import { AIOrderSuggestion } from '../types';
@@ -56,6 +57,18 @@ const MENU_GENERATION_SCHEMA: Schema = {
           itemIds: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
         required: ["name", "itemIds"]
+      }
+    },
+    info: {
+      type: Type.OBJECT,
+      properties: {
+        phoneNumber: { type: Type.STRING, description: "Restaurant phone number" },
+        rating: { type: Type.NUMBER, description: "Google review rating (e.g. 4.5)" },
+        deliveryApps: { 
+            type: Type.ARRAY, 
+            items: { type: Type.STRING },
+            description: "List of delivery apps they are on (e.g. Grubhub, DoorDash, UberEats)" 
+        }
       }
     }
   },
@@ -123,8 +136,8 @@ async function searchForMenuInfo(restaurantName: string, context: string, mode: 
   try {
     const isDeep = mode === 'deep';
     const prompt = isDeep 
-      ? `Perform a deep search for the complete menu of ${restaurantName} (URL/Context: ${context}). Find appetizers, entrees, sides, desserts, and drinks. Include ingredient details and prices if possible.`
-      : `Find the current menu items for ${restaurantName} (URL/Context: ${context}). List main dishes and prices.`;
+      ? `Perform a deep search for the complete menu of ${restaurantName} (URL/Context: ${context}). Find appetizers, entrees, sides, desserts, and drinks. Also find their phone number, Google rating, and if they are on DoorDash, Grubhub or UberEats.`
+      : `Find the current menu items for ${restaurantName} (URL/Context: ${context}). List main dishes and prices. Also find their phone number and delivery options.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -155,6 +168,7 @@ async function generateInternalMenuKnowledge(restaurantName: string): Promise<st
       Generate a comprehensive menu listing for the restaurant "${restaurantName}" based on your internal knowledge.
       Include Categories (Appetizers, Mains, Sides, Drinks).
       List specific item names, descriptions, and estimated prices ($).
+      Also provide their likely phone number, rating (out of 5), and delivery apps (DoorDash, etc).
       Be as detailed as possible to simulate a real menu.
     `;
     
@@ -172,7 +186,11 @@ async function generateInternalMenuKnowledge(restaurantName: string): Promise<st
 }
 
 // Helper: Stage 2 - Structure raw text into JSON
-async function structureMenuData(restaurantName: string, rawText: string): Promise<{ menu: Ingredient[], presets: Preset[] } | null> {
+async function structureMenuData(restaurantName: string, rawText: string): Promise<{ 
+    menu: Ingredient[], 
+    presets: Preset[], 
+    info?: { phoneNumber?: string, rating?: number, deliveryApps?: string[] } 
+} | null> {
   try {
     const systemInstruction = `
       You are a data structuring engine.
@@ -186,6 +204,7 @@ async function structureMenuData(restaurantName: string, rawText: string): Promi
       2. Group items into 5-10 logical Categories (e.g. "Appetizers", "Main Course", "Sides").
       3. If prices are missing in the text, ESTIMATE them based on typical restaurant pricing (e.g., Burger $15, Soda $3).
       4. Create 3-5 Presets that combine items logically.
+      5. Extract Phone Number, Rating, and Delivery Apps if mentioned in the text.
     `;
 
     const response = await ai.models.generateContent({
@@ -213,7 +232,11 @@ export const generateMenuFromContext = async (
   restaurantName: string,
   context: string,
   mode: 'standard' | 'deep' = 'standard'
-): Promise<{ menu: Ingredient[], presets: Preset[] } | null> => {
+): Promise<{ 
+    menu: Ingredient[], 
+    presets: Preset[],
+    info?: { phoneNumber?: string, rating?: number, deliveryApps?: string[] }
+} | null> => {
   try {
     const isUrl = context.trim().match(/^(http|www\.)/i);
     let rawContext = "";

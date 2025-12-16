@@ -6,7 +6,7 @@ import { Globe, Loader2, Sparkles, ChefHat, Layers, ArrowLeft } from 'lucide-rea
 
 interface MenuImporterProps {
   restaurant: Restaurant;
-  onImport: (menu: Ingredient[], presets: Preset[]) => void;
+  onImport: (menu: Ingredient[], presets: Preset[], info?: { phoneNumber?: string, rating?: number, deliveryApps?: string[] }) => void;
   onCancel?: () => void;
 }
 
@@ -40,7 +40,7 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
       if (data) {
         setStatusMsg("Constructing interactive menu...");
         await new Promise(r => setTimeout(r, 400)); // Brief pause to read message
-        onImport(data.menu, data.presets);
+        onImport(data.menu, data.presets, data.info);
       } else {
         alert("The AI couldn't generate a valid menu structure. Please try again.");
         setStatusMsg("");
