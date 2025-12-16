@@ -1,8 +1,10 @@
 
 import React, { useMemo, useState } from 'react';
-import { Ingredient, Preset } from '../types';
+import { Ingredient, Preset, AIOrderSuggestion } from '../types';
 import { Check, Flame, Star, Plus, Trash2, Settings2, Sparkles, Loader2, Share2, History, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { generateItemModifications } from '../services/geminiService';
+import { MenuImporter } from './MenuImporter';
+import { GeminiAssistant } from './GeminiAssistant';
 
 interface BowlBuilderProps {
   menu: Ingredient[];
@@ -18,11 +20,19 @@ interface BowlBuilderProps {
   restaurantColor: string;
   restaurantName?: string;
   
-  // New props for versioning
+  // Versioning & Scraping
   availableVersions?: {id: string, label: string}[];
   currentVersionId?: string;
   onVersionChange?: (id: string) => void;
   onScrapeNew?: () => void;
+  
+  // Importer Mode Props
+  isScraping?: boolean;
+  onStartScrape?: (url: string, mode: 'standard' | 'deep') => void;
+  onCancelScrape?: () => void;
+  
+  // AI Props
+  onApplySuggestion?: (suggestion: AIOrderSuggestion) => void;
 }
 
 export const BowlBuilder: React.FC<BowlBuilderProps> = ({
@@ -41,7 +51,11 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
   availableVersions = [],
   currentVersionId,
   onVersionChange,
-  onScrapeNew
+  onScrapeNew,
+  isScraping,
+  onStartScrape,
+  onCancelScrape,
+  onApplySuggestion
 }) => {
   const [newCustomItem, setNewCustomItem] = useState('');
   
@@ -50,6 +64,45 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
   const [suggestedMods, setSuggestedMods] = useState<Record<string, string[]>>({});
   const [isModLoading, setIsModLoading] = useState(false);
   const [manualModInput, setManualModInput] = useState('');
+
+  // --- IMPORTER MODE LAYOUT ---
+  // If we are scraping or in the 'NEW' version mode, show the split view
+  if (isScraping || currentVersionId === 'NEW') {
+      return (
+          <div className="flex flex-col md:flex-row gap-6 h-full min-h-[500px]">
+              {/* Left: Importer */}
+              <div className="flex-1 bg-stone-50 rounded-xl border border-stone-200 overflow-hidden shadow-sm">
+                  <MenuImporter 
+                      restaurant={{ 
+                          id: 'temp', 
+                          name: restaurantName, 
+                          logo: '🍽️', 
+                          color: restaurantColor, 
+                          menu: [], 
+                          address: '', 
+                          distanceFromRec: '' 
+                      }} 
+                      onStartScrape={onStartScrape || (() => {})}
+                      isScraping={isScraping}
+                      onCancel={onCancelScrape}
+                  />
+              </div>
+
+              {/* Right: AI Chef */}
+              <div className="w-full md:w-80 flex flex-col h-full bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                   <GeminiAssistant 
+                        variant="embedded"
+                        scope="restaurant"
+                        restaurantName={restaurantName}
+                        menu={[]} // Empty menu context during scraping
+                        onApplySuggestion={onApplySuggestion}
+                   />
+              </div>
+          </div>
+      );
+  }
+
+  // --- STANDARD BUILDER LAYOUT ---
 
   const filteredItems = useMemo(() => {
     if (categoryFilter === 'ALL') return menu;
@@ -415,3 +468,4 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
     </div>
   );
 };
+
