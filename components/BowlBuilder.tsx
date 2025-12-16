@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Ingredient, Preset } from '../types';
-import { Check, Flame, Star, Plus, Trash2, Settings2, Sparkles, Loader2, Share2, History, RefreshCw } from 'lucide-react';
+import { Check, Flame, Star, Plus, Trash2, Settings2, Sparkles, Loader2, Share2, History, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { generateItemModifications } from '../services/geminiService';
 
 interface BowlBuilderProps {
@@ -114,6 +114,19 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
       navigator.clipboard.writeText(text);
       alert("Order request copied to clipboard! You can paste it in a message.");
     }
+  };
+
+  // Helper to get placeholder icon
+  const getCategoryIcon = (category: string) => {
+    const cat = category.toLowerCase();
+    if (cat.includes('green') || cat.includes('salad') || cat.includes('veg')) return '🥗';
+    if (cat.includes('grain') || cat.includes('rice')) return '🍚';
+    if (cat.includes('meat') || cat.includes('chicken') || cat.includes('steak') || cat.includes('protein') || cat.includes('beef')) return '🍖';
+    if (cat.includes('drink') || cat.includes('shake')) return '🥤';
+    if (cat.includes('dip') || cat.includes('sauce') || cat.includes('hummus')) return '🥣';
+    if (cat.includes('cheese')) return '🧀';
+    if (cat.includes('bread') || cat.includes('pita')) return '🍞';
+    return '🍽️';
   };
 
   return (
@@ -266,52 +279,63 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
                 <div key={item.id} className="relative">
                 <button
                     onClick={() => onToggleItem(item.id)}
-                    className={`relative w-full group text-left p-3 md:p-4 rounded-xl border transition-all duration-200 ${
+                    className={`relative w-full group text-left p-2 rounded-xl border transition-all duration-200 flex gap-3 ${
                     isSelected
                         ? `border-current bg-stone-50 shadow-md ring-1 ring-current text-stone-900`
                         : 'border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm'
                     }`}
                     style={isSelected ? { borderColor: 'currentColor', color: 'inherit' } : {}}
                 >
+                     {/* Border Overlay */}
                      <div className={`absolute inset-0 rounded-xl border pointer-events-none ${isSelected ? `border-current opacity-100` : 'border-transparent'}`}></div>
                      
-                    <div className="flex justify-between items-start mb-0.5 md:mb-1 relative z-10">
-                    <span className={`font-semibold text-xs md:text-sm ${isSelected ? 'text-stone-900' : 'text-stone-800'}`}>
-                        {item.name}
-                    </span>
-                    {isSelected && <Check className="w-3.5 h-3.5 md:w-4 md:h-4 text-stone-900" />}
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-[10px] md:text-xs text-stone-500 mb-1.5 md:mb-2 relative z-10">
-                    <span>{item.calories} cal</span>
-                    {item.premium && <span className="text-amber-600 font-medium px-1.5 py-0.5 bg-amber-100 rounded text-[10px]">Premium</span>}
-                    </div>
+                     {/* Image Placeholder */}
+                     <div className={`w-14 h-14 md:w-16 md:h-16 flex-shrink-0 rounded-lg flex items-center justify-center text-2xl md:text-3xl bg-stone-100 relative z-10 ${isSelected ? 'bg-white/50' : ''}`}>
+                         {item.image ? (
+                             <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-lg" />
+                         ) : (
+                             <span>{getCategoryIcon(item.category)}</span>
+                         )}
+                         {/* Selection Checkmark on Image */}
+                         {isSelected && (
+                             <div className="absolute -top-1.5 -right-1.5 bg-stone-900 text-white rounded-full p-0.5 shadow-sm border border-white">
+                                 <Check className="w-3 h-3" />
+                             </div>
+                         )}
+                     </div>
 
-                    {item.description && (
-                    <p className="text-[10px] md:text-xs text-stone-400 line-clamp-2 relative z-10">{item.description}</p>
-                    )}
-                    
-                    <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                     <div className="flex-1 min-w-0 py-1 z-10">
+                        <div className="flex justify-between items-start mb-0.5">
+                            <span className={`font-semibold text-xs md:text-sm leading-tight truncate pr-1 ${isSelected ? 'text-stone-900' : 'text-stone-800'}`}>
+                                {item.name}
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-[10px] text-stone-500 mb-1">
+                            {item.calories && <span>{item.calories} cal</span>}
+                            {item.premium && <span className="text-amber-600 font-medium px-1.5 py-0.5 bg-amber-100 rounded-[4px] leading-none">Premium</span>}
+                        </div>
+
+                        {item.description && (
+                            <p className="text-[10px] text-stone-400 line-clamp-1">{item.description}</p>
+                        )}
+                     </div>
+
+                     {/* Spicy Icon */}
+                    <div className="absolute bottom-2 right-2 z-10">
                         {(item.name.toLowerCase().includes('spicy') || item.name.includes('Harissa') || item.name.includes('Skhug') || item.name.includes('Hot')) && (
                             <Flame className="w-3 h-3 text-red-500" />
                         )}
                     </div>
                 </button>
 
-                {/* Customization Toggle */}
-                {isSelected && (
-                    <div className="absolute top-2 right-2 z-20">
-                         {/* We handle customization below */}
-                    </div>
-                )}
-                
                 {/* Customization Panel */}
                 {isSelected && (
-                    <div className="mt-1 pl-4 pr-1">
+                    <div className="mt-1 pl-2 pr-1">
                         {!isModifying ? (
                             <button 
                                 onClick={() => setActiveModItem(item.id)}
-                                className="text-[10px] md:text-xs flex items-center gap-1 text-stone-400 hover:text-blue-600 transition-colors"
+                                className="text-[10px] md:text-xs flex items-center gap-1 text-stone-400 hover:text-blue-600 transition-colors w-full justify-end px-2"
                             >
                                 <Settings2 className="w-3 h-3" /> Customize
                             </button>
@@ -391,3 +415,4 @@ export const BowlBuilder: React.FC<BowlBuilderProps> = ({
     </div>
   );
 };
+
