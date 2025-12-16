@@ -11,20 +11,37 @@ interface MenuImporterProps {
 export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport }) => {
   const [url, setUrl] = useState('');
   const [loadingMode, setLoadingMode] = useState<'standard' | 'deep' | null>(null);
+  const [statusMsg, setStatusMsg] = useState('');
 
   const handleImport = async (mode: 'standard' | 'deep') => {
     if (!url.trim()) return;
 
     setLoadingMode(mode);
+    setStatusMsg("Connecting to Gemini...");
+
     try {
+      if (mode === 'deep' || url.startsWith('http')) {
+        setStatusMsg("Browsing Google Index...");
+      } else {
+        setStatusMsg("Analyzing text...");
+      }
+
+      // Small artificial delay to let the user see the status change if it's instant
+      await new Promise(r => setTimeout(r, 500));
+
       const data = await generateMenuFromContext(restaurant.name, url, mode);
+      
       if (data) {
+        setStatusMsg("Constructing menu...");
         onImport(data.menu, data.presets);
       } else {
-        alert("Failed to generate menu. Please try a different URL or description.");
+        alert("Failed to reconstruct menu. Try being more specific or using a different URL.");
+        setStatusMsg("");
       }
     } catch (error) {
+      console.error(error);
       alert("Error contacting AI service.");
+      setStatusMsg("");
     } finally {
       setLoadingMode(null);
     }
@@ -38,7 +55,7 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
       
       <h2 className="text-xl md:text-2xl font-bold text-stone-900 mb-2 text-center">Import Menu for {restaurant.name}</h2>
       <p className="text-sm md:text-base text-stone-500 text-center max-w-md mb-6 md:mb-8">
-        We don't have this menu on file yet. Provide a URL or description, and our AI Agent will scrape and reconstruct the ordering options for you.
+        We don't have this menu on file yet. Provide a URL or description, and our AI Agent will search, scrape, and reconstruct the ordering options for you.
       </p>
 
       <div className="w-full max-w-lg space-y-3 md:space-y-4">
@@ -52,6 +69,12 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
             disabled={loadingMode !== null}
           />
         </div>
+
+        {loadingMode && (
+          <div className="text-center text-xs md:text-sm text-blue-600 font-medium animate-pulse mb-2">
+            {statusMsg}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
             <button 
