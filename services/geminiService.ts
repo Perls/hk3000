@@ -118,56 +118,95 @@ export const parseNaturalLanguageOrder = async (
   }
 };
 
-// Helper: Stage 1 - Search for raw text content
-async function searchForMenuInfo(restaurantName: string, context: string, mode: 'standard' | 'deep'): Promise<string> {
-  const isDeep = mode === 'deep';
-  const prompt = isDeep 
-    ? `Perform a deep search for the complete menu of ${restaurantName} (URL/Context: ${context}). Find appetizers, entrees, sides, desserts, and drinks. Include ingredient details and prices if possible.`
-    : `Find the current menu items for ${restaurantName} (URL/Context: ${context}). List main dishes and prices.`;
+// Helper: Stage 1 - Search for raw text content using Google Search
+async function searchForMenuInfo(restaurantName: string, context: string, mode: 'standard' | 'deep'): Promise<string | null> {
+  try {
+    const isDeep = mode === 'deep';
+    const prompt = isDeep 
+      ? `Perform a deep search for the complete menu of ${restaurantName} (URL/Context: ${context}). Find appetizers, entrees, sides, desserts, and drinks. Include ingredient details and prices if possible.`
+      : `Find the current menu items for ${restaurantName} (URL/Context: ${context}). List main dishes and prices.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      tools: [{ googleSearch: {} }], // Use Search Grounding to actually see the web
-      // NOTE: responseSchema is NOT allowed with googleSearch
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        // Note: We are not enforcing JSON here, we want rich text search results
+      }
+    });
+
+    // If Google Search was used, groundingChunks will be present. 
+    // We log them for debugging/audit purposes.
+    if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+      console.log("Grounding Chunks:", response.candidates[0].groundingMetadata.groundingChunks);
     }
-  });
 
-  return response.text || "";
+    return response.text || null;
+  } catch (e) {
+    console.warn("Search tool failed or not enabled", e);
+    return null;
+  }
+}
+
+// Helper: Stage 1 (Fallback) - Use Internal Knowledge
+async function generateInternalMenuKnowledge(restaurantName: string): Promise<string> {
+  try {
+    const prompt = `
+      Generate a comprehensive menu listing for the restaurant "${restaurantName}" based on your internal knowledge.
+      Include Categories (Appetizers, Mains, Sides, Drinks).
+      List specific item names, descriptions, and estimated prices ($).
+      Be as detailed as possible to simulate a real menu.
+    `;
+    
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      // No tools, just pure generation
+    });
+    
+    return response.text || "";
+  } catch (e) {
+    console.error("Internal knowledge generation failed", e);
+    return "";
+  }
 }
 
 // Helper: Stage 2 - Structure raw text into JSON
 async function structureMenuData(restaurantName: string, rawText: string): Promise<{ menu: Ingredient[], presets: Preset[] } | null> {
-  const systemInstruction = `
-    You are a data structuring engine.
-    Take the provided menu text for "${restaurantName}" and convert it into the strict JSON schema provided.
-    
-    Source Text:
-    ${rawText.substring(0, 30000)}
+  try {
+    const systemInstruction = `
+      You are a data structuring engine.
+      Take the provided menu text for "${restaurantName}" and convert it into the strict JSON schema provided.
+      
+      Source Text:
+      ${rawText.substring(0, 50000)}
 
-    Rules:
-    1. Generate unique, URL-safe IDs (e.g. 'item-burger', 'item-coke').
-    2. Group items into 5-10 logical Categories (e.g. "Appetizers", "Main Course", "Sides").
-    3. If prices are missing in the text, estimate them based on typical restaurant pricing.
-    4. Create 3-5 Presets that combine items logically.
-  `;
+      Rules:
+      1. Generate unique, URL-safe IDs (e.g. 'item-burger', 'item-coke').
+      2. Group items into 5-10 logical Categories (e.g. "Appetizers", "Main Course", "Sides").
+      3. If prices are missing in the text, ESTIMATE them based on typical restaurant pricing (e.g., Burger $15, Soda $3).
+      4. Create 3-5 Presets that combine items logically.
+    `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: "Structure this menu data.",
-    config: {
-      systemInstruction: systemInstruction,
-      responseMimeType: "application/json",
-      responseSchema: MENU_GENERATION_SCHEMA,
-      temperature: 0.2,
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: "Structure this menu data.",
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: MENU_GENERATION_SCHEMA,
+        temperature: 0.4, // Slightly creative to fill in gaps (like prices) if missing
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(response.text);
     }
-  });
-
-  if (response.text) {
-    return JSON.parse(response.text);
+    return null;
+  } catch (e) {
+    console.error("Structuring failed", e);
+    return null;
   }
-  return null;
 }
 
 export const generateMenuFromContext = async (
@@ -177,24 +216,30 @@ export const generateMenuFromContext = async (
 ): Promise<{ menu: Ingredient[], presets: Preset[] } | null> => {
   try {
     const isUrl = context.trim().match(/^(http|www\.)/i);
-    let rawContext = context;
+    let rawContext = "";
 
-    // Stage 1: If it's a URL or deep scan, use Google Search tool to get the content
-    // We cannot just pass a URL to the JSON model; it can't browse.
+    // 1. Attempt Search
     if (isUrl || mode === 'deep') {
-      try {
-        console.log(`[Gemini] Starting Stage 1: Search (${mode}) for ${restaurantName}`);
-        const searchResult = await searchForMenuInfo(restaurantName, context, mode);
-        if (searchResult) {
-          rawContext = searchResult;
-        }
-      } catch (e) {
-        console.warn("[Gemini] Search stage failed, attempting direct parse", e);
+      console.log(`[Gemini] Attempting Search (${mode}) for ${restaurantName}`);
+      const searchResult = await searchForMenuInfo(restaurantName, context, mode);
+      if (searchResult && searchResult.length > 100) {
+        rawContext = searchResult;
       }
     }
 
-    // Stage 2: Structure the data
-    console.log(`[Gemini] Starting Stage 2: Structuring JSON`);
+    // 2. Fallback to Internal Knowledge if Search failed or returned poor results
+    if (!rawContext) {
+      console.log(`[Gemini] Search invalid or skipped. Using Internal Knowledge for ${restaurantName}`);
+      rawContext = await generateInternalMenuKnowledge(restaurantName);
+    }
+
+    // 3. If we still have no text, we can't structure anything.
+    if (!rawContext || rawContext.length < 50) {
+      throw new Error("Could not gather enough context to generate a menu.");
+    }
+
+    // 4. Structure the data
+    console.log(`[Gemini] Structuring Menu Data...`);
     return await structureMenuData(restaurantName, rawContext);
 
   } catch (error) {
