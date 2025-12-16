@@ -14,33 +14,38 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
   const [statusMsg, setStatusMsg] = useState('');
 
   const handleImport = async (mode: 'standard' | 'deep') => {
-    if (!url.trim()) return;
+    // Note: We allow empty URL now because the service can fallback to internal knowledge
+    // But we still prefer user input.
+    if (!url.trim() && !confirm("No URL provided. Do you want AI to generate a menu from general knowledge?")) {
+        return;
+    }
 
     setLoadingMode(mode);
-    setStatusMsg("Connecting to Gemini...");
+    setStatusMsg("Initializing AI Agent...");
 
     try {
       if (mode === 'deep' || url.startsWith('http')) {
         setStatusMsg("Browsing Google Index...");
       } else {
-        setStatusMsg("Analyzing text...");
+        setStatusMsg("Analyzing context...");
       }
 
-      // Small artificial delay to let the user see the status change if it's instant
-      await new Promise(r => setTimeout(r, 500));
+      // Artificial delay for UX
+      await new Promise(r => setTimeout(r, 600));
 
       const data = await generateMenuFromContext(restaurant.name, url, mode);
       
       if (data) {
-        setStatusMsg("Constructing menu...");
+        setStatusMsg("Constructing interactive menu...");
+        await new Promise(r => setTimeout(r, 400)); // Brief pause to read message
         onImport(data.menu, data.presets);
       } else {
-        alert("Failed to reconstruct menu. Try being more specific or using a different URL.");
+        alert("The AI couldn't generate a valid menu structure. Please try again.");
         setStatusMsg("");
       }
     } catch (error) {
       console.error(error);
-      alert("Error contacting AI service.");
+      alert("An unexpected error occurred.");
       setStatusMsg("");
     } finally {
       setLoadingMode(null);
@@ -55,7 +60,7 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
       
       <h2 className="text-xl md:text-2xl font-bold text-stone-900 mb-2 text-center">Import Menu for {restaurant.name}</h2>
       <p className="text-sm md:text-base text-stone-500 text-center max-w-md mb-6 md:mb-8">
-        We don't have this menu on file yet. Provide a URL or description, and our AI Agent will search, scrape, and reconstruct the ordering options for you.
+        We don't have this menu on file yet. Provide a URL, or leave blank to let the AI generate it from general knowledge.
       </p>
 
       <div className="w-full max-w-lg space-y-3 md:space-y-4">
@@ -64,7 +69,7 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
             type="text" 
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://... or paste menu text"
+            placeholder="Optional: https://..."
             className="w-full px-3 py-2.5 md:px-4 md:py-3 rounded-lg border border-stone-300 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm text-sm md:text-base"
             disabled={loadingMode !== null}
           />
@@ -79,25 +84,25 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
             <button 
               onClick={() => handleImport('standard')}
-              disabled={loadingMode !== null || !url.trim()}
+              disabled={loadingMode !== null}
               className="py-2.5 md:py-3 bg-stone-900 text-white rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-stone-800 disabled:opacity-50 transition-all text-sm md:text-base"
             >
               {loadingMode === 'standard' ? (
                 <>
                   <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-                  <span>Scanning...</span>
+                  <span>Generating...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
-                  <span>Quick Import</span>
+                  <span>Standard Generate</span>
                 </>
               )}
             </button>
 
             <button 
               onClick={() => handleImport('deep')}
-              disabled={loadingMode !== null || !url.trim()}
+              disabled={loadingMode !== null}
               className="py-2.5 md:py-3 bg-blue-600 text-white rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50 transition-all border border-blue-800 text-sm md:text-base"
             >
               {loadingMode === 'deep' ? (
@@ -108,7 +113,7 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
               ) : (
                 <>
                   <Layers className="w-4 h-4 md:w-5 md:h-5" />
-                  <span>Deep Scan & Construct</span>
+                  <span>Deep Search & Build</span>
                 </>
               )}
             </button>
