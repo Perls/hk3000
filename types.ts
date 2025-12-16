@@ -3,6 +3,7 @@ export interface Ingredient {
   id: string;
   name: string;
   category: string; // Changed from enum to string for multi-restaurant flexibility
+  image?: string; // Optional URL for item image
   calories?: number;
   premium?: boolean;
   description?: string;
@@ -63,3 +64,4 @@ export interface AIOrderSuggestion {
   itemIds: string[];
   reasoning: string;
 }
+
