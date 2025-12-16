@@ -31,12 +31,15 @@ interface BuilderLayoutProps {
     handleAddCustomItem: (s: string) => void;
     handleRemoveCustomItem: (i: number) => void;
     handleSaveOrder: () => void;
-    handleMenuImport: (m: Ingredient[], p: Preset[], info?: { phoneNumber?: string, rating?: number, deliveryApps?: string[] }) => void;
     handleApplyAISuggestion: (s: any) => void;
     calculateTotalCalories: () => number;
     setSelectedIds: (ids: string[]) => void;
     setCustomItems: (items: string[]) => void;
     hasSystem: boolean;
+    // New Props for Scraping
+    isScraping: boolean;
+    onStartScrape: (url: string, mode: 'standard' | 'deep') => void;
+    handleMenuImport: (menu: Ingredient[], presets: Preset[], info?: { phoneNumber?: string, rating?: number, deliveryApps?: string[] }) => void;
 }
 
 export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
@@ -45,10 +48,12 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
         activeMenuVersionId, activeCategory, setActiveCategory,
         setActiveMenuVersionId, toggleIngredient, handleSelectPreset,
         handleAddCustomItem, handleRemoveCustomItem, handleSaveOrder,
-        handleMenuImport, handleApplyAISuggestion, calculateTotalCalories,
-        setSelectedIds, setCustomItems, hasSystem, savedMenus
+        handleApplyAISuggestion, calculateTotalCalories,
+        setSelectedIds, setCustomItems, hasSystem, savedMenus,
+        isScraping, onStartScrape, handleMenuImport
     } = props;
 
+    // Show Importer if explicitly 'NEW' OR if we have no menu items at all and not scraping
     const showImporter = activeMenuVersionId === 'NEW';
     const savedForRest = savedMenus[activeRestaurant.id] || [];
 
@@ -81,10 +86,12 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
 
     let BuilderContent;
       
-    if (showImporter) {
+    if (showImporter || isScraping) {
         BuilderContent = <MenuImporter 
             restaurant={activeRestaurant} 
-            onImport={handleMenuImport}
+            onStartScrape={onStartScrape}
+            isScraping={isScraping}
+            // If we have other versions, allow cancel to go back to them. If scraping, cancel acts as "Go Back"
             onCancel={versionOptions.length > 0 ? () => setActiveMenuVersionId(versionOptions[0].id) : undefined}
         />;
     } else {
@@ -112,7 +119,7 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
         <main className="max-w-7xl mx-auto p-2 md:p-4 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
             <div className="md:col-span-8 lg:col-span-9 h-[calc(100vh-6rem)] flex flex-col gap-4">
                 {/* Waze-like Distance Meter + Info */}
-                {!showImporter && <RestaurantDistance 
+                {!showImporter && !isScraping && <RestaurantDistance 
                     address={activeRestaurant.address} 
                     distance={activeRestaurant.distanceFromRec}
                     phoneNumber={activeRestaurant.phoneNumber}
@@ -125,7 +132,7 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
                 </div>
             </div>
             <div className="md:col-span-4 lg:col-span-3 space-y-4">
-                {!showImporter && (
+                {!showImporter && !isScraping && (
                     <>
                     <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-4 md:p-5 sticky top-24">
                         <div className="flex justify-between items-center mb-3 md:mb-4">

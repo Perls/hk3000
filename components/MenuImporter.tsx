@@ -1,58 +1,43 @@
 
 import React, { useState } from 'react';
-import { generateMenuFromContext } from '../services/geminiService';
-import { Ingredient, Preset, Restaurant } from '../types';
+import { Restaurant } from '../types';
 import { Globe, Loader2, Sparkles, ChefHat, Layers, ArrowLeft } from 'lucide-react';
 
 interface MenuImporterProps {
   restaurant: Restaurant;
-  onImport: (menu: Ingredient[], presets: Preset[], info?: { phoneNumber?: string, rating?: number, deliveryApps?: string[] }) => void;
+  onStartScrape: (url: string, mode: 'standard' | 'deep') => void;
   onCancel?: () => void;
+  isScraping?: boolean;
 }
 
-export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport, onCancel }) => {
+export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onStartScrape, onCancel, isScraping }) => {
   const [url, setUrl] = useState('');
-  const [loadingMode, setLoadingMode] = useState<'standard' | 'deep' | null>(null);
-  const [statusMsg, setStatusMsg] = useState('');
 
-  const handleImport = async (mode: 'standard' | 'deep') => {
-    // Note: We allow empty URL now because the service can fallback to internal knowledge
-    // But we still prefer user input.
-    if (!url.trim() && !confirm("No URL provided. Do you want AI to generate a menu from general knowledge?")) {
+  const handleStart = (mode: 'standard' | 'deep') => {
+      if (!url.trim() && !confirm("No URL provided. Do you want AI to generate a menu from general knowledge?")) {
         return;
-    }
-
-    setLoadingMode(mode);
-    setStatusMsg("Initializing AI Agent...");
-
-    try {
-      if (mode === 'deep' || url.startsWith('http')) {
-        setStatusMsg("Browsing Google Index...");
-      } else {
-        setStatusMsg("Analyzing context...");
       }
-
-      // Artificial delay for UX
-      await new Promise(r => setTimeout(r, 600));
-
-      const data = await generateMenuFromContext(restaurant.name, url, mode);
-      
-      if (data) {
-        setStatusMsg("Constructing interactive menu...");
-        await new Promise(r => setTimeout(r, 400)); // Brief pause to read message
-        onImport(data.menu, data.presets, data.info);
-      } else {
-        alert("The AI couldn't generate a valid menu structure. Please try again.");
-        setStatusMsg("");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("An unexpected error occurred.");
-      setStatusMsg("");
-    } finally {
-      setLoadingMode(null);
-    }
+      onStartScrape(url, mode);
   };
+
+  if (isScraping) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-8 bg-stone-50 rounded-xl border border-dashed border-stone-300">
+             <div className="relative w-16 h-16 mb-6">
+                 <div className="absolute inset-0 border-4 border-stone-200 rounded-full"></div>
+                 <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                 <Globe className="absolute inset-0 m-auto w-6 h-6 text-blue-600 animate-pulse" />
+             </div>
+             <h2 className="text-xl font-bold text-stone-900 mb-2">Analysing {restaurant.name}...</h2>
+             <p className="text-stone-500 text-center text-sm max-w-xs mb-6">
+                 The AI is currently browsing the web and structuring the menu data. This process happens in the background.
+             </p>
+             <button onClick={onCancel} className="px-6 py-2 bg-white border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-50 font-medium text-sm">
+                 Go Back / Browse Other Items
+             </button>
+        </div>
+      );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-4 md:p-8 bg-stone-50 rounded-xl border border-dashed border-stone-300 relative">
@@ -79,51 +64,24 @@ export const MenuImporter: React.FC<MenuImporterProps> = ({ restaurant, onImport
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Optional: https://..."
             className="w-full px-3 py-2.5 md:px-4 md:py-3 rounded-lg border border-stone-300 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm text-sm md:text-base"
-            disabled={loadingMode !== null}
           />
         </div>
 
-        {loadingMode && (
-          <div className="text-center text-xs md:text-sm text-blue-600 font-medium animate-pulse mb-2">
-            {statusMsg}
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
             <button 
-              onClick={() => handleImport('standard')}
-              disabled={loadingMode !== null}
-              className="py-2.5 md:py-3 bg-stone-900 text-white rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-stone-800 disabled:opacity-50 transition-all text-sm md:text-base"
+              onClick={() => handleStart('standard')}
+              className="py-2.5 md:py-3 bg-stone-900 text-white rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition-all text-sm md:text-base"
             >
-              {loadingMode === 'standard' ? (
-                <>
-                  <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
-                  <span>Standard Generate</span>
-                </>
-              )}
+              <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+              <span>Standard Generate</span>
             </button>
 
             <button 
-              onClick={() => handleImport('deep')}
-              disabled={loadingMode !== null}
-              className="py-2.5 md:py-3 bg-blue-600 text-white rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50 transition-all border border-blue-800 text-sm md:text-base"
+              onClick={() => handleStart('deep')}
+              className="py-2.5 md:py-3 bg-blue-600 text-white rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all border border-blue-800 text-sm md:text-base"
             >
-              {loadingMode === 'deep' ? (
-                <>
-                  <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-                  <span>Deep Crawling...</span>
-                </>
-              ) : (
-                <>
-                  <Layers className="w-4 h-4 md:w-5 md:h-5" />
-                  <span>Deep Search & Build</span>
-                </>
-              )}
+              <Layers className="w-4 h-4 md:w-5 md:h-5" />
+              <span>Deep Search & Build</span>
             </button>
         </div>
       </div>

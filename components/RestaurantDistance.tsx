@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Car, MapPin, Navigation, Phone, Star, Bike } from 'lucide-react';
+import { Navigation, Phone, Star, Bike } from 'lucide-react';
 
 interface RestaurantDistanceProps {
   address?: string;
@@ -23,8 +23,7 @@ export const RestaurantDistance: React.FC<RestaurantDistanceProps> = ({
     <div className="bg-white border-b border-stone-200 p-3 flex flex-col gap-3">
       {/* Top Row: Distance Header */}
       <div className="flex items-center justify-between text-xs font-semibold text-stone-500 uppercase tracking-wider">
-         <span className="flex items-center gap-1"><Car className="w-3 h-3" /> Delivery Route</span>
-         <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Fairfield Rec Center</span>
+         <span className="flex items-center gap-1">Distance to Fairfield Rec Center</span>
       </div>
       
       {/* Waze-like meter */}

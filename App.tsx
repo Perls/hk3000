@@ -7,6 +7,7 @@ import { BuilderLayout } from './components/BuilderLayout';
 import { Order, AIOrderSuggestion, Preset, Ingredient, SavedMenu, Restaurant } from './types';
 import { RESTAURANTS } from './constants';
 import { FAIRFIELD_RESTAURANTS } from './data/fairfield';
+import { generateMenuFromContext } from './services/geminiService';
 
 const App: React.FC = () => {
   // Navigation State
@@ -25,6 +26,9 @@ const App: React.FC = () => {
   // Menu Versioning State
   const [savedMenus, setSavedMenus] = useState<Record<string, SavedMenu[]>>({});
   const [activeMenuVersionId, setActiveMenuVersionId] = useState<string | 'SYSTEM' | 'NEW' | null>(null);
+
+  // Scraping Persistence State
+  const [scrapingIds, setScrapingIds] = useState<Set<string>>(new Set());
 
   // Pending Save State
   const [pendingSaveOrder, setPendingSaveOrder] = useState<{
@@ -199,7 +203,11 @@ const App: React.FC = () => {
       const rest = allRestaurants.find(r => r.id === id);
       const isSystem = RESTAURANTS.some(r => r.id === id);
 
-      if (existing && existing.length > 0) {
+      // If already scraping, we stay in NEW mode to show progress
+      if (scrapingIds.has(id)) {
+           setActiveMenuVersionId('NEW');
+           setActiveCategory('ALL');
+      } else if (existing && existing.length > 0) {
           setActiveMenuVersionId(existing[0].id);
           setActiveCategory(existing[0].presets.length > 0 ? 'PRESETS' : 'ALL');
       } else if (isSystem) {
@@ -278,44 +286,101 @@ const App: React.FC = () => {
     alert(`System Logic: ${suggestion.reasoning}`);
   };
 
-  const handleMenuImport = (
+  // Internal handler for successful imports
+  const processImportSuccess = (
+      restId: string,
       menu: Ingredient[], 
       presets: Preset[], 
       info?: { phoneNumber?: string, rating?: number, deliveryApps?: string[] }
   ) => {
-      if (!activeRestaurantId) return;
-
       // 1. Save the menu version
       const newMenu: SavedMenu = {
           id: crypto.randomUUID(),
-          restaurantId: activeRestaurantId,
+          restaurantId: restId,
           timestamp: Date.now(),
           menu,
           presets,
           sourceUrl: ''
       };
-      const updatedMenus = { ...savedMenus, [activeRestaurantId]: [newMenu, ...(savedMenus[activeRestaurantId] || [])] };
-      setSavedMenus(updatedMenus);
-      saveMenusToStorage(updatedMenus);
+      // Note: We use functional updates to ensure we have latest state if multiple scrapes finish
+      setSavedMenus(prev => {
+          const updated = { ...prev, [restId]: [newMenu, ...(prev[restId] || [])] };
+          saveMenusToStorage(updated);
+          return updated;
+      });
 
       // 2. If valid info was scraped, update the Custom Restaurant entry if it exists
       if (info) {
-          const customIndex = customRestaurants.findIndex(r => r.id === activeRestaurantId);
-          if (customIndex !== -1) {
-              const updatedRests = [...customRestaurants];
-              updatedRests[customIndex] = {
-                  ...updatedRests[customIndex],
-                  phoneNumber: info.phoneNumber,
-                  rating: info.rating,
-                  deliveryApps: info.deliveryApps
-              };
-              setCustomRestaurants(updatedRests);
-              saveCustomRestaurants(updatedRests);
-          }
+          setCustomRestaurants(prev => {
+              const idx = prev.findIndex(r => r.id === restId);
+              if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = {
+                      ...updated[idx],
+                      phoneNumber: info.phoneNumber,
+                      rating: info.rating,
+                      deliveryApps: info.deliveryApps
+                  };
+                  saveCustomRestaurants(updated);
+                  return updated;
+              }
+              return prev;
+          });
       }
 
-      setActiveMenuVersionId(newMenu.id);
-      setActiveCategory('ALL');
+      // 3. Remove from scraping list
+      setScrapingIds(prev => {
+          const next = new Set(prev);
+          next.delete(restId);
+          return next;
+      });
+
+      // 4. Update UI if we are looking at this restaurant
+      if (activeRestaurantId === restId) {
+          setActiveMenuVersionId(newMenu.id);
+          setActiveCategory('ALL');
+      }
+  };
+
+  // Trigger Scrape - Non-blocking
+  const triggerScrape = (restId: string, restName: string, url: string, mode: 'standard' | 'deep') => {
+      // Mark as scraping
+      setScrapingIds(prev => new Set(prev).add(restId));
+      
+      // Start Async Process (Fire and Forget from UI perspective)
+      generateMenuFromContext(restName, url, mode)
+        .then(data => {
+            if (data) {
+                processImportSuccess(restId, data.menu, data.presets, data.info);
+            } else {
+                alert(`Failed to scrape menu for ${restName}`);
+                setScrapingIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(restId);
+                    return next;
+                });
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert(`Error scraping ${restName}`);
+            setScrapingIds(prev => {
+                const next = new Set(prev);
+                next.delete(restId);
+                return next;
+            });
+        });
+  };
+
+  // Wrapper for the builder layout
+  const handleMenuImport = (
+      menu: Ingredient[], 
+      presets: Preset[], 
+      info?: { phoneNumber?: string, rating?: number, deliveryApps?: string[] }
+  ) => {
+      // This is for manual triggering or direct injection if we ever needed it,
+      // but mostly we use triggerScrape now.
+      if(activeRestaurantId) processImportSuccess(activeRestaurantId, menu, presets, info);
   };
 
   const getActiveMenuData = () => {
@@ -392,6 +457,10 @@ const App: React.FC = () => {
                   setSelectedIds={setSelectedIds}
                   setCustomItems={setCustomItems}
                   hasSystem={RESTAURANTS.some(r => r.id === activeRestaurant.id)}
+                  
+                  // Scraping Props
+                  isScraping={scrapingIds.has(activeRestaurant.id)}
+                  onStartScrape={(url, mode) => triggerScrape(activeRestaurant.id, activeRestaurant.name, url, mode)}
               />
           </div>
       );
@@ -418,6 +487,7 @@ const App: React.FC = () => {
             onLoadOrder={handleLoadOrder}
             onViewSaves={() => setViewMode('SAVES')}
             onAddRestaurant={handleAddRestaurant}
+            scrapingIds={scrapingIds}
         />
     </div>
   );

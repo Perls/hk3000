@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Star, Dices, Sparkles, MapPin, History, Plus } from 'lucide-react';
+import { Star, Dices, Sparkles, MapPin, History, Plus, Loader2 } from 'lucide-react';
 import { Restaurant, Order } from '../types';
 import { AddRestaurantModal } from './AddRestaurantModal';
 
@@ -16,6 +16,7 @@ interface HomeViewProps {
     onLoadOrder: (order: Order) => void;
     onViewSaves: () => void;
     onAddRestaurant: (r: Restaurant) => void;
+    scrapingIds: Set<string>;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -29,7 +30,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
     onSelectRestaurant,
     onLoadOrder,
     onViewSaves,
-    onAddRestaurant
+    onAddRestaurant,
+    scrapingIds
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -60,6 +62,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 ) : favoritesList.map(r => {
                     const isHighlighted = highlightedId === r.id;
                     const isWinner = !isRandomizing && highlightedId === r.id; 
+                    const isScraping = scrapingIds.has(r.id);
 
                     return (
                         <button 
@@ -79,8 +82,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
                             `}
                         >
                             <div className={`absolute top-0 left-0 w-1.5 md:w-2 h-full ${r.color}`}></div>
+                            
+                            {/* Loading Overlay */}
+                            {isScraping && (
+                                <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center backdrop-blur-sm">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider animate-pulse">Updating...</span>
+                                    </div>
+                                    <div className="absolute bottom-0 left-0 h-1 bg-blue-500 animate-[width_2s_ease-in-out_infinite] w-full"></div>
+                                </div>
+                            )}
+
                             <div>
-                                <span className="text-2xl md:text-3xl mb-1 md:mb-2 block group-hover:scale-110 transition-transform duration-300">{r.logo}</span>
+                                <span className={`text-2xl md:text-3xl mb-1 md:mb-2 block group-hover:scale-110 transition-transform duration-300 ${isScraping ? 'opacity-50' : ''}`}>{r.logo}</span>
                                 <h3 className="text-base md:text-lg font-bold text-stone-800 group-hover:text-stone-900">{r.name}</h3>
                             </div>
                             <div className="flex flex-col gap-0.5">
@@ -107,22 +122,30 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <h2 className="text-xs md:text-sm font-bold uppercase tracking-wider">Explore Fairfield, NJ</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
-                {exploreList.map(r => (
-                    <button 
-                        key={r.id}
-                        onClick={() => {
-                            if (isRandomizing) return;
-                            onSelectRestaurant(r.id);
-                        }}
-                        className="bg-white rounded-lg p-2 md:p-3 border border-stone-200 hover:border-blue-400 hover:shadow-md transition-all text-left flex flex-col gap-1"
-                    >
-                        <div className="flex items-center gap-2 md:gap-3">
-                            <span className="text-lg md:text-xl bg-stone-100 p-1 rounded">{r.logo}</span>
-                            <span className="text-xs md:text-sm font-medium text-stone-700 truncate">{r.name}</span>
-                        </div>
-                        {r.distanceFromRec && <span className="text-[10px] text-stone-400 pl-1">{r.distanceFromRec}</span>}
-                    </button>
-                ))}
+                {exploreList.map(r => {
+                    const isScraping = scrapingIds.has(r.id);
+                    return (
+                        <button 
+                            key={r.id}
+                            onClick={() => {
+                                if (isRandomizing) return;
+                                onSelectRestaurant(r.id);
+                            }}
+                            className="bg-white rounded-lg p-2 md:p-3 border border-stone-200 hover:border-blue-400 hover:shadow-md transition-all text-left flex flex-col gap-1 relative overflow-hidden"
+                        >
+                             {isScraping && (
+                                <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center">
+                                     <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <span className="text-lg md:text-xl bg-stone-100 p-1 rounded">{r.logo}</span>
+                                <span className="text-xs md:text-sm font-medium text-stone-700 truncate">{r.name}</span>
+                            </div>
+                            {r.distanceFromRec && <span className="text-[10px] text-stone-400 pl-1">{r.distanceFromRec}</span>}
+                        </button>
+                    );
+                })}
             </div>
         </section>
 
