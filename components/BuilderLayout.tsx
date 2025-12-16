@@ -2,7 +2,6 @@
 import React from 'react';
 import { Save, Utensils, X, PenTool } from 'lucide-react';
 import { Restaurant, Ingredient, Preset, SavedMenu } from '../types';
-import { MenuImporter } from './MenuImporter';
 import { BowlBuilder } from './BowlBuilder';
 import { GeminiAssistant } from './GeminiAssistant';
 import { Cava } from './restaurants/Cava';
@@ -50,11 +49,12 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
         handleAddCustomItem, handleRemoveCustomItem, handleSaveOrder,
         handleApplyAISuggestion, calculateTotalCalories,
         setSelectedIds, setCustomItems, hasSystem, savedMenus,
-        isScraping, onStartScrape, handleMenuImport
+        isScraping, onStartScrape
     } = props;
 
-    // Show Importer if explicitly 'NEW' OR if we have no menu items at all and not scraping
+    // Determine Mode
     const showImporter = activeMenuVersionId === 'NEW';
+    const isImporterMode = showImporter || isScraping;
     const savedForRest = savedMenus[activeRestaurant.id] || [];
 
     const versionOptions: {id: string, label: string}[] = [];
@@ -81,22 +81,26 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
         availableVersions: versionOptions,
         currentVersionId: activeMenuVersionId || '',
         onVersionChange: (id: string) => setActiveMenuVersionId(id),
-        onScrapeNew: () => setActiveMenuVersionId('NEW')
+        onScrapeNew: () => setActiveMenuVersionId('NEW'),
+        // Importer Logic is now passed down
+        isScraping,
+        onStartScrape,
+        onCancelScrape: versionOptions.length > 0 ? () => setActiveMenuVersionId(versionOptions[0].id) : undefined,
+        onApplySuggestion: handleApplyAISuggestion
     };
 
     let BuilderContent;
-      
-    if (showImporter || isScraping) {
-        BuilderContent = <MenuImporter 
-            restaurant={activeRestaurant} 
-            onStartScrape={onStartScrape}
-            isScraping={isScraping}
-            // If we have other versions, allow cancel to go back to them. If scraping, cancel acts as "Go Back"
-            onCancel={versionOptions.length > 0 ? () => setActiveMenuVersionId(versionOptions[0].id) : undefined}
+    const isSystemMode = activeMenuVersionId === 'SYSTEM';
+    
+    // If in Importer Mode, we bypass the specific wrappers to use the generic BowlBuilder's importer layout
+    if (isImporterMode) {
+        BuilderContent = <BowlBuilder 
+            menu={[]} // No menu yet
+            presets={[]}
+            restaurantColor={activeRestaurant.color}
+            {...restaurantProps}
         />;
     } else {
-        const isSystemMode = activeMenuVersionId === 'SYSTEM';
-        
         if (isSystemMode && activeRestaurant.id === 'cava') BuilderContent = <Cava {...restaurantProps} />;
         else if (isSystemMode && activeRestaurant.id === 'chipotle') BuilderContent = <Chipotle {...restaurantProps} />;
         else if (isSystemMode && activeRestaurant.id === 'sweetgreen') BuilderContent = <Sweetgreen {...restaurantProps} />;
@@ -106,33 +110,37 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
         else if (isSystemMode && activeRestaurant.id === 'franklin') BuilderContent = <FranklinSteakhouse {...restaurantProps} />;
         else if (isSystemMode && activeRestaurant.id === 'calandras') BuilderContent = <Calandras {...restaurantProps} />;
         else {
-             BuilderContent = <BowlBuilder 
-                  menu={menu} 
-                  presets={presets} 
-                  restaurantColor={activeRestaurant.color} 
-                  {...restaurantProps} 
-             />;
+                BuilderContent = <BowlBuilder 
+                    menu={menu} 
+                    presets={presets} 
+                    restaurantColor={activeRestaurant.color} 
+                    {...restaurantProps} 
+                />;
         }
     }
 
     return (
-        <main className="max-w-7xl mx-auto p-2 md:p-4 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
-            <div className="md:col-span-8 lg:col-span-9 h-[calc(100vh-6rem)] flex flex-col gap-4">
-                {/* Waze-like Distance Meter + Info */}
-                {!showImporter && !isScraping && <RestaurantDistance 
-                    address={activeRestaurant.address} 
-                    distance={activeRestaurant.distanceFromRec}
-                    phoneNumber={activeRestaurant.phoneNumber}
-                    rating={activeRestaurant.rating}
-                    deliveryApps={activeRestaurant.deliveryApps}
-                />}
+        <main className="max-w-7xl mx-auto p-2 md:p-4 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 relative">
+            <div className={`${isImporterMode ? 'md:col-span-12' : 'md:col-span-8 lg:col-span-9'} h-[calc(100vh-6rem)] flex flex-col gap-4 transition-all duration-300`}>
+                {/* Waze-like Distance Meter + Info - Hide in Importer Mode */}
+                {!isImporterMode && (
+                    <RestaurantDistance 
+                        address={activeRestaurant.address} 
+                        distance={activeRestaurant.distanceFromRec}
+                        phoneNumber={activeRestaurant.phoneNumber}
+                        rating={activeRestaurant.rating}
+                        deliveryApps={activeRestaurant.deliveryApps}
+                    />
+                )}
                 
                 <div className="flex-1 overflow-hidden">
                     {BuilderContent}
                 </div>
             </div>
-            <div className="md:col-span-4 lg:col-span-3 space-y-4">
-                {!showImporter && !isScraping && (
+            
+            {/* Sidebar - Hide completely in Importer Mode to give space to the split view */}
+            {!isImporterMode && (
+                <div className="md:col-span-4 lg:col-span-3 space-y-4">
                     <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-4 md:p-5 sticky top-24">
                         <div className="flex justify-between items-center mb-3 md:mb-4">
                             <h2 className="font-bold text-base md:text-lg">Current Order</h2>
@@ -203,17 +211,18 @@ export const BuilderLayout: React.FC<BuilderLayoutProps> = (props) => {
                             <Save className="w-4 h-4" /> Save Config
                         </button>
                     </div>
-                )}
-                
-                {/* Always show AI Assistant, even when scraping */}
-                <GeminiAssistant 
-                    onApplySuggestion={handleApplyAISuggestion}
-                    menu={menu}
-                    restaurantName={activeRestaurant.name}
-                    variant="embedded"
-                    scope="restaurant"
-                />
-            </div>
+                </div>
+            )}
+
+            {/* Floating AI Chef */}
+            <GeminiAssistant 
+                onApplySuggestion={handleApplyAISuggestion}
+                menu={menu}
+                restaurantName={activeRestaurant.name}
+                variant="floating"
+                scope="restaurant"
+            />
         </main>
     );
 };
+
