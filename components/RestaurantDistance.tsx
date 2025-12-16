@@ -26,16 +26,6 @@ export const RestaurantDistance: React.FC<RestaurantDistanceProps> = ({
          <span className="flex items-center gap-1">Distance to Fairfield Rec Center</span>
       </div>
       
-      {/* Waze-like meter */}
-      <div className="relative h-2 bg-stone-100 rounded-full overflow-hidden">
-        <div className="absolute top-0 left-0 h-full w-2/3 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full opacity-30"></div>
-        <div className="absolute top-0 left-2/3 -translate-x-1.5 -translate-y-0.5">
-             <div className="w-3 h-3 bg-blue-600 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
-                 <div className="w-1 h-1 bg-white rounded-full animate-ping"></div>
-             </div>
-        </div>
-      </div>
-
       {/* Info Grid */}
       <div className="grid grid-cols-2 gap-y-2 gap-x-4">
           
@@ -88,3 +78,4 @@ export const RestaurantDistance: React.FC<RestaurantDistanceProps> = ({
     </div>
   );
 };
+
